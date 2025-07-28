@@ -156,24 +156,26 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 	generatedCount := 0
 	firstWord := true
 
-	seedTokens := initialChain[model.Order:]
-	if len(initialChain) > options.maxLength+model.Order {
-		seedTokens = initialChain[model.Order : options.maxLength+model.Order]
-	}
-
-	for _, tokenID := range seedTokens {
-		text, err := g.getTokenTextWithCache(ctx, tokenID, tokenCache)
-		if err != nil {
-			return "", fmt.Errorf("failed to get text for seed token %d: %w", tokenID, err)
+	if len(initialChain) > model.Order { // If we have seed tokens to deal with
+		seedTokens := initialChain[model.Order:]
+		if len(initialChain) > options.maxLength+model.Order {
+			seedTokens = initialChain[model.Order : options.maxLength+model.Order]
 		}
-		if !firstWord {
-			builder.WriteString(g.tokenizer.Separator())
-		}
-		builder.WriteString(text)
-		firstWord = false
 
-		prefix = append(prefix[1:], tokenID)
-		generatedCount++
+		for _, tokenID := range seedTokens {
+			text, err := g.getTokenTextWithCache(ctx, tokenID, tokenCache)
+			if err != nil {
+				return "", fmt.Errorf("failed to get text for seed token %d: %w", tokenID, err)
+			}
+			if !firstWord {
+				builder.WriteString(g.tokenizer.Separator())
+			}
+			builder.WriteString(text)
+			firstWord = false
+
+			prefix = append(prefix[1:], tokenID)
+			generatedCount++
+		}
 	}
 
 	var keyBuf []byte
@@ -246,6 +248,8 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 	}
 
 	if !terminatedEarly {
+		// Ensure that all returned sentences end with an EOC for standardization purposes.
+		builder.WriteString(g.tokenizer.EOC())
 		g.logger.DebugContext(ctx, "Generation terminated by reaching maxLength",
 			slog.String("model_name", model.Name),
 			slog.Int("model_id", model.Id),

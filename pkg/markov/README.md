@@ -1,5 +1,6 @@
-# Go Markov
+# Sarracenia Markov Library
 
+[![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/CTAG07/Sarracenia)](https://goreportcard.com/report/github.com/CTAG07/Sarracenia)
 [![Go Reference](https://pkg.go.dev/badge/github.com/CTAG07/Sarracenia/pkg/markov.svg)](https://pkg.go.dev/github.com/CTAG07/Sarracenia/pkg/markov)
 
@@ -174,14 +175,14 @@ The models were trained on a corpus containing the following files from the Go s
 
 Note: (Order #) means the trained model uses # tokens as context when deciding on the next one.
 
-| Benchmark           | Time/Op | Processed/Sec | Mem/Op  | Allocations/Op |
-|:--------------------|:--------|---------------|:--------|:---------------|
-| **Train (Order 1)** | 451 ms  | 0.56MB        | 62.4 MB | 1,743,442      |
-| **Train (Order 2)** | 654 ms  | 0.43MB        | 79.9 MB | 2,188,133      |
-| **Train (Order 3)** | 1.06 s  | 0.39MB        | 88.9 MB | 2,394,120      |
-| **Train (Order 4)** | 1.07 s  | 0.37MB        | 91.0 MB | 2,446,817      |
-| **Train (Order 5)** | 1.14 s  | 0.36MB        | 92.3 MB | 2,464,441      |
-| **VocabularyPrune** | 2.03 ms | N/A           | 366 KB  | 6,475          |
+| Benchmark           | Time/Op | Processed/Sec | Mem/Op  | Allocs/Op |
+|:--------------------|:--------|---------------|:--------|:----------|
+| **Train (Order 1)** | 451 ms  | 0.56MB        | 62.4 MB | 1,743,442 |
+| **Train (Order 2)** | 654 ms  | 0.43MB        | 79.9 MB | 2,188,133 |
+| **Train (Order 3)** | 1.06 s  | 0.39MB        | 88.9 MB | 2,394,120 |
+| **Train (Order 4)** | 1.07 s  | 0.37MB        | 91.0 MB | 2,446,817 |
+| **Train (Order 5)** | 1.14 s  | 0.36MB        | 92.3 MB | 2,464,441 |
+| **VocabularyPrune** | 2.03 ms | N/A           | 366 KB  | 6,475     |
 
 ### How to Run Benchmarks
 
@@ -198,6 +199,4 @@ This library is designed and optimized for **SQLite**. Because of this, it uses 
 
 ## License
 
-This project is licensed under the same license as the entire Sarracenia project, AGPLv3.
-
-The same alternative licensing is also available for the markov library, see the [Main Readme](https://github.com/CTAG07/Sarracenia/blob/main/README.md) for details
+This library is part of the Sarracenia project and is licensed under the AGPLv3. See the [Project Readme](https://github.com/CTAG07/Sarracenia/blob/main/README.md) for details on alternative licensing.
