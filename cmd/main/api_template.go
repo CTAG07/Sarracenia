@@ -52,7 +52,7 @@ func (t *TemplateAPI) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := t.tm.Refresh(); err != nil {
 		t.logger.Error("API triggered refresh failed", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Failed to refresh templates")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to refresh templates: %v", err))
 		return
 	}
 	t.logger.Info("Templates refreshed via API")
@@ -87,7 +87,7 @@ func (t *TemplateAPI) handleTest(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to read request body")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to read request body: %v", err))
 		return
 	}
 
@@ -179,11 +179,11 @@ func (t *TemplateAPI) handleFile(w http.ResponseWriter, r *http.Request) {
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Failed to read request body")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to read request body: %v", err))
 			return
 		}
 		if err = os.WriteFile(path, body, 0644); err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Failed to write template file")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to write template file: %v", err))
 			return
 		}
 		_ = t.tm.Refresh()
@@ -199,7 +199,7 @@ func (t *TemplateAPI) handleFile(w http.ResponseWriter, r *http.Request) {
 				respondWithError(w, http.StatusNotFound, "Template not found")
 				return
 			}
-			respondWithError(w, http.StatusInternalServerError, "Failed to delete template file")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to delete template file: %v", err))
 			return
 		}
 		_ = t.tm.Refresh()

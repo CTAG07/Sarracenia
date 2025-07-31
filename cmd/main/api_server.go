@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/CTAG07/Sarracenia/pkg/templating"
 	"log/slog"
 	"net/http"
@@ -75,12 +76,12 @@ func (a *ServerAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 		data, err := json.MarshalIndent(a.config, "", "  ")
 		if err != nil {
 			a.logger.Error("Failed to marshal new config for saving", "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to prepare config for saving")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to prepare config for saving: %v", err))
 			return
 		}
 		if err = os.WriteFile("config.json", data, 0644); err != nil {
 			a.logger.Error("Failed to save config.json", "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to save configuration to disk")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save configuration to disk: %v", err))
 			return
 		}
 

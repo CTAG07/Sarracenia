@@ -193,7 +193,7 @@ func (a *AuthAPI) listKeys(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.db.QueryContext(r.Context(), `SELECT id, description, scopes FROM api_keys ORDER BY id`)
 	if err != nil {
 		a.logger.Error("Failed to query API keys", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Database query failed")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Database query failed: %v", err))
 		return
 	}
 	defer func(rows *sql.Rows) {
@@ -206,7 +206,7 @@ func (a *AuthAPI) listKeys(w http.ResponseWriter, r *http.Request) {
 		var scopesStr string
 		if err = rows.Scan(&key.ID, &key.Description, &scopesStr); err != nil {
 			a.logger.Error("Failed to scan API key row", "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to process database results")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to process database results: %v", err))
 			return
 		}
 		key.Scopes = strings.Split(scopesStr, " ")
@@ -226,7 +226,7 @@ func (a *AuthAPI) createKey(w http.ResponseWriter, r *http.Request) {
 	rawKey, err := generateAPIKey()
 	if err != nil {
 		a.logger.Error("Failed to generate new API key", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Key generation failed")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Key generation failed: %v", err))
 		return
 	}
 	keyHash := hashAPIKey(rawKey)
@@ -246,7 +246,7 @@ func (a *AuthAPI) createKey(w http.ResponseWriter, r *http.Request) {
 		keyHash, req.Description, scopesStr).Scan(&newID)
 	if err != nil {
 		a.logger.Error("Failed to insert new API key", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Failed to save new key")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save new key: %v", err))
 		return
 	}
 
@@ -272,7 +272,7 @@ func (a *AuthAPI) deleteKey(w http.ResponseWriter, r *http.Request, id int) {
 	res, err := a.db.ExecContext(r.Context(), "DELETE FROM api_keys WHERE id = ?", id)
 	if err != nil {
 		a.logger.Error("Failed to delete API key", "id", id, "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Failed to delete key")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to delete key: %v", err))
 		return
 	}
 

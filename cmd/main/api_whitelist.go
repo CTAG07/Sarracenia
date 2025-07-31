@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -149,7 +150,7 @@ func (a *WhitelistAPI) getList(w http.ResponseWriter, r *http.Request, listType 
 	rows, err := a.db.Query("SELECT value FROM whitelist WHERE type = ?", listType)
 	if err != nil {
 		a.logger.Error("Failed to query whitelist", "type", listType, "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve whitelist")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to retreive whitelist: %v", err))
 		return
 	}
 	defer func(rows *sql.Rows) {
@@ -195,7 +196,7 @@ func (a *WhitelistAPI) addToList(w http.ResponseWriter, r *http.Request, listTyp
 			respondWithError(w, http.StatusConflict, "Value already exists in the whitelist")
 		} else {
 			a.logger.Error("Failed to insert into whitelist", "type", listType, "value", value, "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to add value to whitelist")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to add value to whitelist: %v", err))
 		}
 		return
 	}
@@ -228,7 +229,7 @@ func (a *WhitelistAPI) removeFromList(w http.ResponseWriter, r *http.Request, li
 	res, err := a.db.Exec("DELETE FROM whitelist WHERE type = ? AND value = ?", listType, value)
 	if err != nil {
 		a.logger.Error("Failed to delete from whitelist", "type", listType, "value", value, "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Failed to remove value from whitelist")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to remove value from whitelist: %v", err))
 		return
 	}
 

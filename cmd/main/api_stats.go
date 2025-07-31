@@ -141,7 +141,7 @@ func (s *StatsAPI) handleTopIPs(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.QueryContext(r.Context(), "SELECT ip_address, total_hits, first_seen, last_seen FROM stats_ip ORDER BY total_hits DESC LIMIT 100")
 	if err != nil {
 		s.logger.Error("Failed to query top IPs", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Database error")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Database error: %v", err))
 		return
 	}
 	defer func(rows *sql.Rows) {
@@ -175,7 +175,7 @@ func (s *StatsAPI) handleTopUserAgents(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.QueryContext(r.Context(), "SELECT user_agent, total_hits, first_seen, last_seen FROM stats_user_agent ORDER BY total_hits DESC LIMIT 100")
 	if err != nil {
 		s.logger.Error("Failed to query top UAs", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Database error")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Database error: %v", err))
 		return
 	}
 	defer func(rows *sql.Rows) {

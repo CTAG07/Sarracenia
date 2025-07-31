@@ -57,7 +57,7 @@ func (m *MarkovAPI) handleListAndCreateModels(w http.ResponseWriter, r *http.Req
 		models, err := m.gen.GetModelInfos(r.Context())
 		if err != nil {
 			m.logger.Error("Failed to get model infos", "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to retrieve models")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to retreive models: %v", err))
 			return
 		}
 		// Convert map to slice for consistent JSON output
@@ -85,13 +85,13 @@ func (m *MarkovAPI) handleListAndCreateModels(w http.ResponseWriter, r *http.Req
 		model := markov.ModelInfo{Name: req.Name, Order: req.Order}
 		if err := m.gen.InsertModel(r.Context(), model); err != nil {
 			m.logger.Error("Failed to insert new model", "name", req.Name, "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to create model")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create model: %v", err))
 			return
 		}
 		newModel, err := m.gen.GetModelInfo(r.Context(), req.Name)
 		if err != nil {
 			m.logger.Error("Failed to retrieve newly created model", "name", req.Name, "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Failed to verify model creation")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to verify model creation: %v", err))
 			return
 		}
 		_ = m.tm.Refresh()
@@ -121,7 +121,7 @@ func (m *MarkovAPI) handleModelByName(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		m.logger.Error("Failed to get model info by name", "name", modelName, "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Database error")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Database error: %v", err))
 		return
 	}
 
@@ -133,7 +133,7 @@ func (m *MarkovAPI) handleModelByName(w http.ResponseWriter, r *http.Request) {
 			}
 			if err = m.gen.RemoveModel(r.Context(), model); err != nil {
 				m.logger.Error("Failed to remove model", "name", modelName, "error", err)
-				respondWithError(w, http.StatusInternalServerError, "Failed to remove model")
+				respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to remove model: %v", err))
 				return
 			}
 			_ = m.tm.Refresh()
@@ -160,7 +160,7 @@ func (m *MarkovAPI) handleModelByName(w http.ResponseWriter, r *http.Request) {
 
 		if err = m.gen.Train(r.Context(), model, r.Body); err != nil {
 			m.logger.Error("Failed to train model", "name", modelName, "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Training failed")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Training failed: %v", err))
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
@@ -182,7 +182,7 @@ func (m *MarkovAPI) handleModelByName(w http.ResponseWriter, r *http.Request) {
 		}
 		if err = m.gen.PruneModel(r.Context(), model, req.MinFreq); err != nil {
 			m.logger.Error("Failed to prune model", "name", modelName, "error", err)
-			respondWithError(w, http.StatusInternalServerError, "Pruning failed")
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Pruning failed: %v", err))
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -248,7 +248,7 @@ func (m *MarkovAPI) handleVocabPrune(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := m.gen.VocabularyPrune(r.Context(), req.MinFreq); err != nil {
 		m.logger.Error("Failed to prune vocabulary", "error", err)
-		respondWithError(w, http.StatusInternalServerError, "Vocabulary prune failed")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Vocabulary prune failed: %v", err))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
