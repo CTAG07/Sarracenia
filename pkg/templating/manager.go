@@ -3,6 +3,7 @@ package templating
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"github.com/CTAG07/Sarracenia/pkg/markov"
 	"html/template"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -20,6 +22,10 @@ var (
 	loadErr       error
 )
 
+// InitWordList loads the global dictionary of words from a file at the given path.
+// It is designed to be called once at application startup. It uses a sync.Once
+// to ensure the word list is loaded only a single time, making subsequent calls
+// a no-op. An error is returned if the file cannot be read.
 func InitWordList(path string) error {
 	loadWordsOnce.Do(func() {
 		var words []string
@@ -50,9 +56,14 @@ func InitWordList(path string) error {
 	return loadErr
 }
 
+// TemplateManager is the central controller for the templating engine.
+// It manages the template set, configuration, function map, and connections
+// to other services like the Markov generator. It is responsible for loading,
+// parsing, and executing templates in a concurrent-safe manner.
+// All methods are concurrent-safe.
 type TemplateManager struct {
 	logger        *slog.Logger
-	config        TemplateConfig
+	config        *TemplateConfig
 	whitelistMap  map[string]struct{}
 	markovGen     *markov.Generator
 	markovModels  map[string]markov.ModelInfo
@@ -63,7 +74,12 @@ type TemplateManager struct {
 	mu            sync.RWMutex
 }
 
-func NewTemplateManager(logger *slog.Logger, markovGen *markov.Generator, config TemplateConfig, dataDir string) (*TemplateManager, error) {
+// NewTemplateManager creates, initializes, and returns a new TemplateManager.
+// It requires a logger, an optional Markov generator (can be nil if config.MarkovEnabled
+// is false), a configuration, and the path to the data directory which must contain
+// a "templates" subdirectory and a "wordlist.txt" file. It performs an initial
+// Refresh to load all templates and models.
+func NewTemplateManager(logger *slog.Logger, markovGen *markov.Generator, config *TemplateConfig, dataDir string) (*TemplateManager, error) {
 
 	var wordListFile, templateDir string
 
@@ -151,13 +167,21 @@ func (tm *TemplateManager) makeFuncMap() template.FuncMap {
 	}
 }
 
-func (tm *TemplateManager) SetConfig(config TemplateConfig) {
+// SetConfig applies a new configuration to the TemplateManager. This allows for
+// changes to the engine's behavior, such as updating safety limits or
+// the path whitelist, without needing to restart the application.
+func (tm *TemplateManager) SetConfig(config *TemplateConfig) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 	tm.config = config
 	for _, path := range config.PathWhitelist {
 		tm.whitelistMap[path] = struct{}{}
 	}
 }
 
+// Refresh reloads all templates from the filesystem and, if enabled, refreshes
+// the list of available Markov models from the database. This function allows for
+// updates to templates and models without restarting the application.
 func (tm *TemplateManager) Refresh() error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
@@ -166,30 +190,51 @@ func (tm *TemplateManager) Refresh() error {
 	tm.logger.Info("Loading template files...")
 
 	parsedFiles, err := template.New("").Funcs(tm.funcMap).ParseGlob(filePattern)
-	if err != nil {
-		tm.logger.Error("failed to parse template files", "error", err)
-		return err
-	}
-
 	var names []string
-	for _, t := range parsedFiles.Templates() {
-		// By default, there is a root template with no name. We don't want to execute this
-		if t.Name() != "" && t.Name() != parsedFiles.Name() {
-			names = append(names, t.Name())
+	if err != nil {
+		if !strings.Contains(err.Error(), "pattern matches no files") {
+			tm.logger.Error("failed to parse template files", "error", err)
+			return err
+		} else {
+			// No template files, so we have to create the object without any
+			parsedFiles = template.New("").Funcs(tm.funcMap)
+			names = []string{}
+		}
+	} else {
+		for _, t := range parsedFiles.Templates() {
+			// By default, there is a root template with no name. We don't want to execute this
+			if strings.Contains(t.Name(), ".tmpl.html") {
+				names = append(names, t.Name())
+			}
 		}
 	}
+
+	filePattern = filepath.Join(tm.templateDir, "*.part.html")
+	tm.logger.Info("Loading partial files...")
+
+	newParsedFiles, err := parsedFiles.ParseGlob(filePattern)
+	if err != nil {
+		if !strings.Contains(err.Error(), "pattern matches no files") {
+			tm.logger.Error("failed to parse partial files", "error", err)
+			return err
+		} else {
+			newParsedFiles = parsedFiles
+		}
+	}
+	// We skip the for loop here because templateNames is only for full templates
 
 	if len(names) == 0 {
 		tm.logger.Warn("No template files found matching pattern", "pattern", filePattern)
 	}
 
-	tm.templates = parsedFiles
+	tm.templates = newParsedFiles
 	tm.templateNames = names
-	tm.logger.Info("Loaded template files", "count", len(parsedFiles.Templates()))
+	tm.logger.Info("Loaded template and partial files", "count", len(parsedFiles.Templates())-1) // Subtract one for the root template
 
 	if tm.config.MarkovEnabled {
 		tm.logger.Info("Loading markov models...")
-		models, err := tm.markovGen.GetModelInfos(context.Background())
+		var models map[string]markov.ModelInfo
+		models, err = tm.markovGen.GetModelInfos(context.Background())
 		if err != nil {
 			tm.logger.Error("failed to load markov models", "error", err)
 			return err
@@ -206,14 +251,78 @@ func (tm *TemplateManager) Refresh() error {
 	return nil
 }
 
+// Execute renders a specific template by name, writing the output to the provided io.Writer.
+// The `data` argument is passed to the template and can be used to provide context or
+// dynamic values.
 func (tm *TemplateManager) Execute(w io.Writer, name string, data interface{}) error {
+	if name == "" {
+		return nil
+	}
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 	return tm.templates.ExecuteTemplate(w, name, data)
 }
 
+// GetRandomTemplate returns the name of a randomly selected template from the set
+// of loaded full templates. This is the primary mechanism for serving varied and
+// unpredictable pages to web scrapers.
 func (tm *TemplateManager) GetRandomTemplate() string {
+	if len(tm.templateNames) == 0 {
+		return ""
+	}
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 	return tm.templateNames[rand.IntN(len(tm.templateNames))]
+}
+
+// GetConfig returns a copy of the current configuration.
+// This mainly exists for concurrency-safety reasons.
+func (tm *TemplateManager) GetConfig() TemplateConfig {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+	return *tm.config
+}
+
+// GetTemplateNames returns a slice of the loaded template names.
+// This mainly exists for concurrency-safety reasons, and because
+// it returns the names of partial templates as well.
+func (tm *TemplateManager) GetTemplateNames() []string {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+	var names []string
+	for _, t := range tm.templates.Templates() {
+		// By default, there is a root template with no name. We don't want to return this in the list
+		if strings.Contains(t.Name(), ".html") {
+			names = append(names, t.Name())
+		}
+	}
+	return names
+}
+
+// GetTemplateDir returns the template dir that the TemplateManager uses.
+// This mainly exists for concurrency-safety reasons as well.
+func (tm *TemplateManager) GetTemplateDir() string {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+	return tm.templateDir
+}
+
+// ExecuteTemplateString parses and executes a raw template string using the manager's function map.
+// This is ideal for testing or previewing templates without saving them to disk.
+func (tm *TemplateManager) ExecuteTemplateString(w io.Writer, content string, data interface{}) error {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	// Create a new, temporary template map copy so that the temp string can use partials properly.
+	tempSet, err := tm.templates.Clone()
+	if err != nil {
+		return fmt.Errorf("failed to clone templates: %w", err)
+	}
+
+	t, err := tempSet.Parse(content)
+	if err != nil {
+		return fmt.Errorf("failed to parse string template: %w", err)
+	}
+
+	return t.Execute(w, data)
 }

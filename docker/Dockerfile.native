@@ -1,0 +1,24 @@
+FROM golang:1.24.5 AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends git
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/sarracenia ./cmd/main
+
+FROM scratch
+
+COPY --from=builder /app/sarracenia /app/sarracenia
+
+COPY ./example /app
+
+WORKDIR /app
+
+EXPOSE 7277 7278
+
+CMD ["./sarracenia"]

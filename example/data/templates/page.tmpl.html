@@ -1,0 +1,11 @@
+{{/* First, specify which layout this page extends */}}
+{{template "layout.part.html" .}}
+
+{{/*
+Then, define the content blocks that the layout expects.
+The "content" block will be injected into the layout's placeholder.
+*/}}
+{{define "content"}}
+<h2>Welcome to the Page</h2>
+<p>{{markovSentence "test" 25}}</p>
+{{end}}

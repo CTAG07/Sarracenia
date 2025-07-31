@@ -40,7 +40,7 @@ func TestGenerateFrom(t *testing.T) {
 			seed:        "one fish",
 			maxLength:   4,
 			canEndEarly: true,
-			expected:    "one fish two fish",
+			expected:    "one fish two fish.",
 		},
 		{
 			name:        "Early end with EOC",
@@ -54,13 +54,13 @@ func TestGenerateFrom(t *testing.T) {
 			seed:        "one fish",
 			maxLength:   3,
 			canEndEarly: true,
-			expected:    "one fish two",
+			expected:    "one fish two.",
 		},
 		{
 			name:      "Seed is longer than maxLength",
 			seed:      "one fish two fish",
 			maxLength: 3,
-			expected:  "one fish two",
+			expected:  "one fish two.",
 		},
 		{
 			name:          "Seed contains unknown token",

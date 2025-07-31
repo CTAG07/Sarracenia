@@ -6,17 +6,26 @@
 
 A robust, performant, and database-backed Markov chain library for Go.
 
-This library provides a comprehensive toolkit for training, managing, and generating text from Markov models. It is designed for high-quality environments, with a focus on performance, data integrity, and a flexible, developer-friendly API.
+This library provides a comprehensive toolkit for training, managing, and generating text from Markov models. It is
+designed for high-quality environments, with a focus on performance, data integrity, and a flexible, developer-friendly
+API.
 
 ## Features
 
-*   **🗄️ Database-Backed:** All model data is stored in a SQLite database, allowing for persistence, large datasets, and management of multiple models.
-*   **⚡ High-Performance Training:** Utilizes transactions and batch inserts to train models from large text streams efficiently.
-*   **🔌 Extensible Tokenizer:** Comes with a sensible default tokenizer, but provides a `Tokenizer` interface to let you define custom rules for splitting text (e.g., for different languages or formats).
-*   **🔥 Advanced Generation:** Goes beyond basic random selection with support for `temperature` and `top-K` sampling, giving you fine-grained control over the creativity and coherence of generated text.
-*   **🌊 Streaming API:** Generate text token-by-token through a channel, perfect for real-time applications (like chatbots) or generating long sequences without high memory usage.
-*   **🛠️ Full Model Lifecycle:** Easily `Insert`, `Remove`, `Export` to JSON, `Import` from JSON, and `Prune` models to manage their entire lifecycle.
-*   **🔒 Robust and Safe:** Employs database transactions for all write operations to guarantee data consistency and uses `context.Context` throughout for cancellation and deadline propagation.
+* **🗄️ Database-Backed:** All model data is stored in a SQLite database, allowing for persistence, large datasets, and
+  management of multiple models.
+* **⚡ High-Performance Training:** Utilizes transactions and batch inserts to train models from large text streams
+  efficiently.
+* **🔌 Extensible Tokenizer:** Comes with a sensible default tokenizer, but provides a `Tokenizer` interface to let you
+  define custom rules for splitting text (e.g., for different languages or formats).
+* **🔥 Advanced Generation:** Goes beyond basic random selection with support for `temperature` and `top-K` sampling,
+  giving you fine-grained control over the creativity and coherence of generated text.
+* **🌊 Streaming API:** Generate text token-by-token through a channel, perfect for real-time applications (like
+  chatbots) or generating long sequences without high memory usage.
+* **🛠️ Full Model Lifecycle:** Easily `Insert`, `Remove`, `Export` to JSON, `Import` from JSON, and `Prune` models to
+  manage their entire lifecycle.
+* **🔒 Robust and Safe:** Employs database transactions for all write operations to guarantee data consistency and uses
+  `context.Context` throughout for cancellation and deadline propagation.
 
 ## Installation
 
@@ -146,15 +155,15 @@ if err != nil {
 
 The results below were captured on the following system:
 
-*   **CPU:** 13th Gen Intel(R) Core(TM) i9-13905H
-*   **OS:** Windows 11
-*   **Go:** 1.24.5
+* **CPU:** 13th Gen Intel(R) Core(TM) i9-13905H
+* **OS:** Windows 11
+* **Go:** 1.24.5
 
 The models were trained on a corpus containing the following files from the Go standard library source:
 
-*   `src/net/http/server.go`
-*   `src/go/parser/parser.go`
-*   `src/encoding/json/encode.go`
+* `src/net/http/server.go`
+* `src/go/parser/parser.go`
+* `src/encoding/json/encode.go`
 
 *Note: Your results may vary based on your hardware.*
 
@@ -195,8 +204,11 @@ go test -bench . -benchmem
 
 ## Database
 
-This library is designed and optimized for **SQLite**. Because of this, it uses some statements specific to SQLite. While it could be adapted for other SQL databases like PostgreSQL or MySQL, it would require modifying the prepared statements in `generator.go` and `train.go`.
+This library is designed and optimized for **SQLite**. Because of this, it uses some statements specific to SQLite.
+While it could be adapted for other SQL databases like PostgreSQL or MySQL, it would require modifying the prepared
+statements in `generator.go` and `train.go`.
 
 ## License
 
-This library is part of the Sarracenia project and is licensed under the AGPLv3. See the [Project Readme](https://github.com/CTAG07/Sarracenia/blob/main/README.md) for details on alternative licensing.
+This library is part of the Sarracenia project and is licensed under the AGPLv3. See
+the [Project Readme](https://github.com/CTAG07/Sarracenia/blob/main/README.md) for details on alternative licensing.

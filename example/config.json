@@ -1,0 +1,57 @@
+{
+  "server_config": {
+    "server_addr": ":7277",
+    "api_addr": ":7278",
+    "log_level": "info",
+    "data_dir": "./data",
+    "database_path": "./data/sarracenia.db",
+    "dashboard_path": "./data/dashboard.html"
+  },
+  "template_config": {
+    "markov_enabled": false,
+    "path_whitelist": [],
+    "min_subpaths": 1,
+    "max_subpaths": 5,
+    "max_json_depth": 8,
+    "max_nest_divs": 50,
+    "max_table_rows": 100,
+    "max_table_cols": 50,
+    "max_form_fields": 75,
+    "max_style_rules": 200,
+    "max_css_vars": 100,
+    "max_svg_elements": 7,
+    "max_js_content_size": 1048576,
+    "max_js_waste_cycles": 1000000
+  },
+  "threat_config": {
+    "base_threat": 0,
+    "ip_hit_factor": 1,
+    "ua_hit_factor": 0.5,
+    "ip_hit_rate_factor": 10,
+    "ua_hit_rate_factor": 5,
+    "max_threat": 1000,
+    "fallback_level": 0,
+    "stages": {
+      "stage_1": {
+        "enabled": true,
+        "threshold": 0
+      },
+      "stage_2": {
+        "enabled": false,
+        "threshold": 25
+      },
+      "stage_3": {
+        "enabled": false,
+        "threshold": 50
+      },
+      "stage_4": {
+        "enabled": false,
+        "threshold": 75
+      },
+      "stage_5": {
+        "enabled": false,
+        "threshold": 100
+      }
+    }
+  }
+}

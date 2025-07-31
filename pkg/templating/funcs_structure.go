@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-// DefinitionData is a simple struct to hold a term and its definition,
-// used by randomDefinitionData to return a slice that templates can range over.
+// DefinitionData is a simple struct to hold a term and its definition.
+// It is used by the randomDefinitionData template function to return a slice
+// that templates can easily range over to build definition lists (<dl>).
 type DefinitionData struct {
 	Term string
 	Def  string

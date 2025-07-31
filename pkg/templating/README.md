@@ -1,27 +1,38 @@
-
 # Sarracenia Templating Engine
 
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/CTAG07/Sarracenia)](https://goreportcard.com/report/github.com/CTAG07/Sarracenia)
 [![Go Reference](https://pkg.go.dev/badge/github.com/CTAG07/Sarracenia/pkg/templating.svg)](https://pkg.go.dev/github.com/CTAG07/Sarracenia/pkg/templating)
 
-A high-performance, configurable, and extensible Go templating engine designed for generating complex and dynamic web pages.
+A high-performance, configurable, and extensible Go templating engine designed for generating complex and dynamic web
+pages.
 
-This library provides a comprehensive toolkit for building varied and intricate HTML content on the fly. It is built on the principle of server-side efficiency, allowing for the generation of sophisticated pages with minimal overhead. It is a ground-up, professional rewrite designed for stability, safety, and extensibility.
+This library provides a comprehensive toolkit for building varied and intricate HTML content on the fly. It is built on
+the principle of server-side efficiency, allowing for the generation of sophisticated pages with minimal overhead. It is
+a ground-up, professional rewrite designed for stability, safety, and extensibility.
 
 ## Features
 
-*   **📈 Highly Parameterized Functions:** All generation functions accept parameters (like `count`, `depth`, `complexity`) enabling precise, dynamic control over the generated output directly from within your templates.
-*   **🧠 Multi-Model Content Generation:** (Optionally) leverages the `Sarracenia/pkg/markov` library to generate plausible, thematic text from multiple, distinct Markov models stored in a database.
-*   **🕸️ Complex Structure Generation:** Includes a suite of functions for creating intricate HTML structures, such as deeply nested DOMs (`nestDivs`) and complex, irregular tables (`randomComplexTable`).
-*   **⚙️ Client-Side Content Rendering:** Provides functions to render content via JavaScript, using randomized obfuscation schemes to protect the source content and require client-side script execution.
-*   **🛠️ Configurable & Safe:** All computationally intensive functions are governed by safety limits in a `TemplateConfig` struct, preventing templates from accidentally overloading the server or a client's browser.
-*   **🚀 Built for Performance:** Engineered for minimal server-side load, ensuring efficient generation even under high concurrency.
-*   **🧩 Component-Based Templates:** Fully supports Go's native template composition (`{{template "..."}}`, `{{define "..."}}`), enabling the creation of clean, maintainable, and reusable layouts and partials.
+* **📈 Highly Parameterized Functions:** All generation functions accept parameters (like `count`, `depth`, `complexity`)
+  enabling precise, dynamic control over the generated output directly from within your templates.
+* **🧠 Multi-Model Content Generation:** (Optionally) leverages the `Sarracenia/pkg/markov` library to generate
+  plausible, thematic text from multiple, distinct Markov models stored in a database.
+* **🕸️ Complex Structure Generation:** Includes a suite of functions for creating intricate HTML structures, such as
+  deeply nested DOMs (`nestDivs`) and complex, irregular tables (`randomComplexTable`).
+* **⚙️ Client-Side Content Rendering:** Provides functions to render content via JavaScript, using randomized
+  obfuscation schemes to protect the source content and require client-side script execution.
+* **🛠️ Configurable & Safe:** All computationally intensive functions are governed by safety limits in a
+  `TemplateConfig` struct, preventing templates from accidentally overloading the server or a client's browser.
+* **🚀 Built for Performance:** Engineered for minimal server-side load, ensuring efficient generation even under high
+  concurrency.
+* **🧩 Component-Based & Safe:** Fully supports Go's native template composition (`{{template "..."}}`). Uses a clear
+  file convention (`*.tmpl.html` for main pages, `*.part.html` for partials) to ensure only complete pages are randomly
+  selected, preventing accidental rendering of partials.
 
 ## Template Function Library (Macro Reference)
 
 ### Content (`funcs_content.go`)
+
 | Signature                                                                        | Description                                                                                       |
 |:---------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------|
 | `markovSentence modelName maxLength`                                             | Generates a thematic sentence from the specified Markov model.                                    |
@@ -34,6 +45,7 @@ This library provides a comprehensive toolkit for building varied and intricate 
 | `randomJSON depth elements len`                                                  | Generates a random, nested JSON object string. Capped by `MaxJSONDepth`.                          |
 
 ### Structure (`funcs_structure.go`)
+
 | Signature                                   | Description                                                                            |
 |:--------------------------------------------|:---------------------------------------------------------------------------------------|
 | `randomForm count styleCount`               | Generates a `<form>` with `count` varied input fields. Capped by `MaxFormFields`.      |
@@ -42,6 +54,7 @@ This library provides a comprehensive toolkit for building varied and intricate 
 | `randomComplexTable rows cols`              | Generates an irregular `<table>` with random `colspan`. Capped by `MaxTableRows/Cols`. |
 
 ### Styling (`funcs_styling.go`)
+
 | Signature                 | Description                                                                    |
 |:--------------------------|:-------------------------------------------------------------------------------|
 | `randomColor`             | Returns a random hex color code string (e.g., `#a1f6b3`).                      |
@@ -51,12 +64,14 @@ This library provides a comprehensive toolkit for building varied and intricate 
 | `randomInlineStyle count` | Returns a complete `style="..."` attribute with `count` random properties.     |
 
 ### Links & Navigation (`funcs_links.go`)
-| Signature                       | Description                                                                  |
-|:--------------------------------|:-----------------------------------------------------------------------------|
-| `randomLink`                    | Generates a plausible, root-relative URL path, avoiding the `PathWhitelist`. |
-| `randomQueryLink keyCount`      | Generates a random path and appends `keyCount` random query parameters.      |
+
+| Signature                  | Description                                                                  |
+|:---------------------------|:-----------------------------------------------------------------------------|
+| `randomLink`               | Generates a plausible, root-relative URL path, avoiding the `PathWhitelist`. |
+| `randomQueryLink keyCount` | Generates a random path and appends `keyCount` random query parameters.      |
 
 ### Logic & Control (`funcs_logic.go`)
+
 | Signature              | Description                                                 |
 |:-----------------------|:------------------------------------------------------------|
 | `repeat count`         | Returns a slice for use with `range` to loop `count` times. |
@@ -65,6 +80,7 @@ This library provides a comprehensive toolkit for building varied and intricate 
 | `randomInt min max`    | Returns a random integer in `[min, max)`.                   |
 
 ### Simple Math & Logic (`funcs_simple.go`)
+
 | Signature           | Description                                                                     |
 |:--------------------|:--------------------------------------------------------------------------------|
 | `add a b`           | Returns `a+b`                                                                   |
@@ -82,6 +98,7 @@ This library provides a comprehensive toolkit for building varied and intricate 
 | `isSet value`       | Returns `true` if `value` is not its "zero" value (not `nil`, `""`, `0`, etc.). |
 
 ### Computationally Expensive (`funcs_expensive.go`)
+
 | Signature                                 | Description                                                                                                                                             |
 |:------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `randomStyleBlock type count`             | Generates a `<style>` block with `count` complex/nested CSS rules. Capped by `MaxStyleRules`.                                                           |
@@ -139,6 +156,7 @@ func main() {
 ```
 
 **Example `data/templates/page.tmpl.html`:**
+
 ```html
 <h1>{{randomSentence 12}}</h1>
 <ul>
@@ -148,44 +166,62 @@ func main() {
 </ul>
 ```
 
-## Advanced Usage: Layouts and Partials
+## Advanced Usage: The Composition Pattern
 
-The engine fully supports Go's native template composition, which enables the creation of reusable layouts and partials that can receive data.
+The engine uses a clear file-naming convention to distinguish between main templates and reusable partials:
+
+* `*.tmpl.html`: **Main Templates.** These are the entry points for rendering a complete page. They define the specific
+  content for the page and choose which layout to extend. Only files with this extension are included in the list for
+  random selection.
+* `*.part.html`: **Layouts & Partials.** These are reusable components. This includes full-page layouts (like
+  `layout.part.html`) and smaller components (like `_header.part.html`). They are never selected randomly and are meant
+  to be included by main templates.
+
+This is the recommended "composition" pattern, which is highly maintainable and avoids repetition.
 
 **Go Application Code:**
+
 ```go
 // In your main application, assuming 'tm' is an initialized TemplateManager
 // with Markov features enabled and a valid generator instance.
 pageData := map[string]any{
-"PageTitle": "My Dynamic Page",
-"Items":     []string{"Alpha", "Beta", "Gamma"},
-"TextModel": "tech-docs-model", // Specify which model to use for generation.
+    "PageTitle": "My Dynamic Page",
+    "Items":     []string{"Alpha", "Beta", "Gamma"},
+    "TextModel": "tech-docs-model", // Specify which model to use for generation.
 }
 // Execute the page template, passing in the data map.
 err := tm.Execute(&output, "page.tmpl.html", pageData)
 // ... handle error
 ```
 
-**`data/templates/layout.tmpl.html`**
+**`data/templates/layout.part.html` (Base Layout Partial)**
+
 ```html
+{{define "layout.part.html"}}
 <!DOCTYPE html>
 <html>
 <head>
     <title>{{.PageTitle}}</title>
 </head>
 <body>
-    {{/* The "." passes the pageData down to the header partial */}}
-    {{template "_header.tmpl.html" .}}
+    {{/* Include the header partial, passing the data down */}}
+    {{template "_header.part.html" .}}
+
     <main>
+        {{/* This is a placeholder for content from the main template */}}
         {{template "content" .}}
     </main>
+
+    <footer>...</footer>
 </body>
 </html>
+{{end}}
 ```
 
-**`data/templates/_header.tmpl.html` (Reusable Partial)**
+**`data/templates/_header.part.html` (Component Partial)**
+
 ```html
-{{define "_header.tmpl.html"}}
+{{define "_header.part.html"}}
 <header>
     <h1>{{.PageTitle}}</h1>
     <nav>...</nav>
@@ -193,14 +229,18 @@ err := tm.Execute(&output, "page.tmpl.html", pageData)
 {{end}}
 ```
 
-**`data/templates/page.tmpl.html` (Content Page)**
-```html
-{{/* Use the layout as the base, passing all data down */}}
-{{template "layout.tmpl.html" .}}
+**`data/templates/page.tmpl.html` (Main Content Template)**
 
-{{/* Define the "content" block that the layout will render */}}
+```html
+{{/* First, specify which layout this page extends */}}
+{{template "layout.part.html" .}}
+
+{{/*
+  Then, define the content blocks that the layout expects.
+  The "content" block will be injected into the layout's placeholder.
+*/}}
 {{define "content"}}
-    {{/* This call now uses the specific model passed in the data */}}
+    <h2>Welcome to the Page</h2>
     <p>{{markovSentence .TextModel 25}}</p>
     <ul>
         {{range .Items}}
@@ -212,11 +252,12 @@ err := tm.Execute(&output, "page.tmpl.html", pageData)
 
 ## Benchmarks
 
-The results below were captured on the following system and provide a performance profile for various content generation categories.
+The results below were captured on the following system and provide a performance profile for various content generation
+categories.
 
-*   **CPU:** 13th Gen Intel(R) Core(TM) i9-13905H
-*   **OS:** Windows 11
-*   **Go:** 1.24.5
+* **CPU:** 13th Gen Intel(R) Core(TM) i9-13905H
+* **OS:** Windows 11
+* **Go:** 1.24.5
 
 The templates used for the benchmarks are as follows:
 
@@ -256,9 +297,11 @@ The templates used for the benchmarks are as follows:
 To run these benchmarks on your own machine, navigate to the package directory and use the following command:
 
 ```sh
-go test -bench . -benchmem ./pkg/templating
+cd pkg/templating
+go test -bench . -benchmem
 ```
 
 ## License
 
-This library is part of the Sarracenia project and is licensed under the AGPLv3. See the [Project Readme](https://github.com/CTAG07/Sarracenia/blob/main/README.md) for details on alternative licensing.
+This library is part of the Sarracenia project and is licensed under the AGPLv3. See
+the [Project Readme](https://github.com/CTAG07/Sarracenia/blob/main/README.md) for details on alternative licensing.

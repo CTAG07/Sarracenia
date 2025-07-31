@@ -24,10 +24,14 @@ var (
 	jsVars = []string{"i", "j", "w", "i+j", "i*j", "i/(j+1)", "j+1", "i%%10", "j%%10", "(w%%1000)"}
 )
 
-// StyleBlock is a struct returned by randomStyleBlock, allowing the template
-// to access both the generated <style> block and the unique parent class name.
+// StyleBlock is a struct returned by the randomStyleBlock template function.
+// It allows the template to access both the generated <style> block HTML and the
+// unique parent class name required to apply those styles to a specific element.
 type StyleBlock struct {
+	// Style contains the full <style>...</style> block as safe HTML.
 	Style template.HTML
+	// Class contains the unique CSS class name (e.g., "c-a1b2c3d4") to be used
+	// in an element's class attribute.
 	Class template.CSS
 }
 

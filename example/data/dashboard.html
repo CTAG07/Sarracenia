@@ -1,0 +1,2225 @@
+<!doctype html>
+<html lang=en>
+<meta charset=UTF-8>
+<meta content="width=device-width,initial-scale=1" name=viewport>
+<title>Sarracenia Dashboard</title>
+<link href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><path d=%22M20,80 C40,20 60,20 80,80 L20,80 Z%22 stroke=%22%23a78bfa%22 stroke-width=%228%22 fill=%22none%22/><path d=%22M30,80 C45,40 55,40 70,80%22 stroke=%22%23a78bfa%22 stroke-width=%226%22 fill=%22none%22/></svg>"
+      rel=icon>
+<link href=https://fonts.googleapis.com rel=preconnect>
+<link crossorigin href=https://fonts.gstatic.com rel=preconnect>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Code&display=swap"
+      rel=stylesheet>
+<style>:root {
+    --primary-color: #a78bfa;
+    --primary-color-dark: #8b5cf6;
+    --secondary-color: #7dd3fc;
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: rgba(255, 255, 255, 0.6);
+    --text-disabled: rgba(255, 255, 255, 0.4);
+    --bg-dark: #0a0a0f;
+    --bg-main: #111827;
+    --surface-bg: rgba(24, 24, 27, 0.6);
+    --hover-bg: rgba(55, 65, 81, 0.5);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --hot-color: #4ade80;
+    --warm-color: #facc15;
+    --warm-color-dark: #eab308;
+    --tepid-color: #f97316;
+    --cold-color: #ef4444;
+    --cold-color-dark: #dc2626;
+    --frozen-color: #6b7280;
+    --font-family: 'Inter', sans-serif;
+    --font-mono: 'Fira Code', monospace
+}
+
+* {
+    box-sizing: border-box
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    margin: 0;
+    background-image: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, .15), transparent 40%), radial-gradient(circle at 90% 80%, rgba(125, 211, 252, .1), transparent 40%), linear-gradient(135deg, var(--bg-dark), var(--bg-main));
+    overflow-x: hidden;
+    height: 100vh
+}
+
+body.nav-open #backdrop {
+    display: block
+}
+
+#login-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, .7);
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+    animation: fadeIn .5s ease-out
+}
+
+.login-box {
+    background: var(--surface-bg);
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+    width: 100%;
+    max-width: 400px;
+    text-align: center
+}
+
+.login-logo {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1rem;
+    color: var(--primary-color)
+}
+
+.login-box h1 {
+    margin-top: 0;
+    color: var(--text-primary)
+}
+
+.login-box #login-error {
+    color: var(--cold-color);
+    min-height: 1.2em;
+    font-weight: 500
+}
+
+#dashboard {
+    display: none;
+    flex-direction: row;
+    height: 100%
+}
+
+nav {
+    width: 240px;
+    background: rgba(10, 10, 15, .4);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-color);
+    transition: transform .3s ease-in-out
+}
+
+main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden
+}
+
+.page-content {
+    padding: 2rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    display: none
+}
+
+.content-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px)
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0)
+    }
+}
+
+.page-content.active {
+    display: block;
+    animation: fadeIn .3s ease-out forwards
+}
+
+header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2rem;
+    white-space: nowrap;
+    font-weight: 700
+}
+
+header h1 span {
+    color: var(--primary-color)
+}
+
+#menu-toggle {
+    display: none;
+    background: 0 0;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: .5rem
+}
+
+#menu-toggle svg {
+    width: 28px;
+    height: 28px
+}
+
+#backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, .5);
+    z-index: 99
+}
+
+nav h2 {
+    color: var(--primary-color);
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: .8rem
+}
+
+nav h2 .logo-icon {
+    width: 32px;
+    height: 32px
+}
+
+.nav-btn {
+    background: 0 0;
+    border: none;
+    color: var(--text-secondary);
+    padding: .9rem 1rem;
+    margin-bottom: .5rem;
+    border-radius: 8px;
+    text-align: left;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: all .2s ease-in-out;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: .8rem
+}
+
+.nav-btn:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+    transform: translateX(3px)
+}
+
+.nav-btn.active {
+    background-color: var(--primary-color);
+    color: var(--bg-dark);
+    font-weight: 700;
+    transform: translateX(0)
+}
+
+.nav-btn.active svg {
+    color: var(--bg-dark)
+}
+
+.nav-btn svg {
+    width: 22px;
+    height: 22px;
+    color: var(--text-secondary);
+    transition: color .2s
+}
+
+.nav-btn:hover svg {
+    color: var(--text-primary)
+}
+
+.logout-section {
+    margin-top: auto
+}
+
+.card {
+    background-color: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .1), inset 0 1px 1px 0 rgba(255, 255, 255, .05);
+    display: flex;
+    flex-direction: column;
+    transition: all .25s ease-in-out
+}
+
+.card-header {
+    padding: 1.5rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color)
+}
+
+.card-header + .card-content {
+    padding-top: 1.5rem
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500
+}
+
+.card-content {
+    padding: 1.5rem
+}
+
+.card-content.no-padding-top {
+    padding-top: 0
+}
+
+.card:hover {
+    border-color: rgba(167, 139, 250, .4);
+    box-shadow: 0 0 25px rgba(167, 139, 250, .1), 0 4px 8px rgba(0, 0, 0, .2)
+}
+
+.danger-card {
+    border-color: rgba(220, 38, 38, .4)
+}
+
+.danger-card .card-header {
+    color: var(--cold-color)
+}
+
+.grid {
+    display: grid;
+    grid-template-columns:repeat(auto-fit, minmax(min(100%, 450px), 1fr));
+    gap: 1.5rem
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, .1), rgba(255, 255, 255, 0));
+    margin: 1.5rem 0;
+    width: 100%
+}
+
+label {
+    display: block;
+    margin-bottom: .5rem;
+    font-weight: 500;
+    color: var(--text-secondary)
+}
+
+.label-with-helpers {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: .5rem
+}
+
+.scope-helpers {
+    font-size: .8rem
+}
+
+.scope-helpers a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    margin-left: .5rem;
+    cursor: pointer
+}
+
+.scope-helpers a:hover {
+    text-decoration: underline
+}
+
+button, input, select, textarea {
+    padding: .75rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, .2);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    font-size: 1rem;
+    transition: border-color .2s, background-color .2s, box-shadow .2s
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: 0;
+    border-color: var(--primary-color);
+    background-color: rgba(0, 0, 0, .3);
+    box-shadow: 0 0 8px rgba(167, 139, 250, .3)
+}
+
+input, select, textarea {
+    width: 100%
+}
+
+input[type=checkbox], input[type=radio] {
+    width: auto;
+    margin: 0;
+    accent-color: var(--primary-color)
+}
+
+input.invalid, textarea.invalid {
+    border-color: var(--cold-color) !important
+}
+
+select option {
+    background-color: var(--bg-dark);
+    color: var(--text-primary)
+}
+
+button {
+    width: auto;
+    background-color: rgba(255, 255, 255, .05);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    transition: all .2s
+}
+
+button:hover:not(:disabled) {
+    background-color: var(--hover-bg);
+    border-color: var(--primary-color);
+    transform: translateY(-1px)
+}
+
+form button[type=submit] {
+    width: 100%;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #111
+}
+
+form button[type=submit]:hover:not(:disabled) {
+    background-color: var(--primary-color-dark);
+    border-color: var(--primary-color-dark);
+    box-shadow: 0 0 12px rgba(167, 139, 250, .5)
+}
+
+button:disabled {
+    background-color: #2a2a2a;
+    color: #666;
+    cursor: not-allowed;
+    opacity: .7;
+    border-color: #2a2a2a
+}
+
+button.danger {
+    background-color: var(--cold-color);
+    color: var(--text-primary);
+    border-color: var(--cold-color)
+}
+
+button.danger:hover:not(:disabled) {
+    background-color: var(--cold-color-dark);
+    border-color: var(--cold-color-dark)
+}
+
+button.warning {
+    background-color: var(--warm-color);
+    color: #111;
+    border-color: var(--warm-color)
+}
+
+button.warning:hover:not(:disabled) {
+    background-color: var(--warm-color-dark);
+    border-color: var(--warm-color-dark)
+}
+
+button.secondary {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary)
+}
+
+button.secondary:hover:not(:disabled) {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--text-secondary)
+}
+
+button.icon-only {
+    padding: .5rem;
+    width: auto;
+    aspect-ratio: 1/1
+}
+
+button.icon-only .btn-text {
+    display: none
+}
+
+button.loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none
+}
+
+button.loading .btn-icon, button.loading .btn-text {
+    opacity: 0
+}
+
+button.loading::after {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.2em;
+    height: 1.2em;
+    margin-left: -.6em;
+    margin-top: -.6em;
+    border-radius: 50%;
+    border: 2px solid var(--text-disabled);
+    border-top-color: var(--primary-color);
+    animation: spin .8s linear infinite
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg)
+    }
+}
+
+.btn-icon {
+    width: 1.2em;
+    height: 1.2em
+}
+
+.form-status {
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 1rem;
+    text-align: center
+}
+
+textarea {
+    font-family: var(--font-mono);
+    min-height: 200px;
+    flex-grow: 1
+}
+
+small.helper-text {
+    display: block;
+    color: var(--text-secondary);
+    font-size: .8rem;
+    margin-top: -.75rem;
+    margin-bottom: 1rem
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 1rem
+}
+
+.page-header h2 {
+    margin: 0;
+    font-size: 1.5rem
+}
+
+.top-grid {
+    display: grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem
+}
+
+.stat-card {
+    text-align: center;
+    padding: 1.5rem
+}
+
+.stat-card h2 {
+    margin: 0 0 .5rem 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .05em
+}
+
+.stat-card p {
+    margin: 0;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1
+}
+
+#application-info-card .card-content {
+    padding-top: .5rem;
+    padding-bottom: .5rem
+}
+
+#application-info-card .card-header {
+    padding-bottom: 1rem;
+    border-bottom: none
+}
+
+.vitals-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%
+}
+
+.vitals-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 1rem;
+    padding: .75rem 0;
+    border-bottom: 1px solid var(--border-color)
+}
+
+.vitals-list li:last-child {
+    border-bottom: none
+}
+
+.vitals-list .label {
+    color: var(--text-secondary)
+}
+
+.vitals-list .value {
+    font-weight: 500;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: .9rem
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: .6rem
+}
+
+.status-indicator::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background-color: var(--hot-color);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 5px var(--hot-color)
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1
+    }
+    50% {
+        opacity: .4
+    }
+    100% {
+        opacity: 1
+    }
+}
+
+.table-container {
+    padding: 0;
+    overflow-x: auto
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse
+}
+
+td, th {
+    text-align: left;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color)
+}
+
+td {
+    max-width: 350px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+td.scopes-cell {
+    white-space: normal
+}
+
+tbody {
+    transition: opacity .3s ease
+}
+
+tbody tr:nth-child(odd) {
+    background-color: rgba(0, 0, 0, .1)
+}
+
+tbody tr:hover {
+    background-color: var(--hover-bg)
+}
+
+.list-empty-state, tbody .empty-row td {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+    white-space: normal
+}
+
+tbody .empty-row td p {
+    margin-top: 0
+}
+
+th.sortable {
+    cursor: pointer;
+    user-select: none
+}
+
+th.sortable::after {
+    content: '';
+    display: inline-block;
+    width: 1em;
+    text-align: left;
+    margin-left: .25em;
+    color: var(--text-secondary)
+}
+
+th.sortable[data-sort-dir=asc]::after {
+    content: '▲'
+}
+
+th.sortable[data-sort-dir=desc]::after {
+    content: '▼'
+}
+
+.recency-dot {
+    height: 10px;
+    width: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    flex-shrink: 0
+}
+
+.recency-dot.hot {
+    background-color: var(--hot-color)
+}
+
+.recency-dot.warm {
+    background-color: var(--warm-color)
+}
+
+.recency-dot.tepid {
+    background-color: var(--tepid-color)
+}
+
+.recency-dot.cold {
+    background-color: var(--cold-color)
+}
+
+.recency-dot.frozen {
+    background-color: var(--frozen-color)
+}
+
+.tab-nav {
+    display: flex;
+    gap: .5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem
+}
+
+.tab-btn {
+    background: 0 0;
+    border: none;
+    padding: 1rem .5rem;
+    margin-bottom: -1px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-size: 1rem
+}
+
+.tab-btn:hover {
+    color: var(--text-primary)
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 500
+}
+
+.tab-panel {
+    display: none
+}
+
+.tab-panel.active {
+    display: block;
+    animation: fadeIn .3s ease-out
+}
+
+.whitelist-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, .1)
+}
+
+.whitelist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .75rem .75rem .75rem 1.25rem
+}
+
+.whitelist-item:not(:last-child) {
+    border-bottom: 1px solid var(--border-color)
+}
+
+.whitelist-item .value {
+    font-family: var(--font-mono);
+    word-break: break-all;
+    padding-right: 1rem;
+    font-size: .9rem;
+    flex-grow: 1
+}
+
+.add-whitelist-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: stretch;
+    margin-bottom: 0
+}
+
+.add-whitelist-form input {
+    margin-bottom: 0;
+    flex-grow: 1;
+    min-width: 200px;
+    width: auto
+}
+
+.add-whitelist-form button {
+    margin-bottom: 0;
+    width: auto;
+    flex-shrink: 0
+}
+
+.remove-item-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 1.2rem;
+    line-height: 1;
+    margin: 0;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: 0 0;
+    color: var(--text-secondary)
+}
+
+.remove-item-btn:hover:not(:disabled) {
+    background: var(--cold-color);
+    border-color: var(--cold-color-dark);
+    color: #fff;
+    transform: translateY(-1px)
+}
+
+.template-grid {
+    align-items: start
+}
+
+.template-grid > .card {
+    height: 100%
+}
+
+#template-preview-card {
+    overflow: hidden
+}
+
+#template-preview-card .card-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column
+}
+
+#template-preview-frame {
+    width: 100%;
+    flex-grow: 1;
+    border: none;
+    border-radius: 8px;
+    background-color: #fff
+}
+
+.template-actions {
+    display: flex;
+    gap: 1rem
+}
+
+.template-actions button {
+    flex-grow: 1
+}
+
+.preview-controls {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem
+}
+
+.preview-controls label {
+    margin: 0;
+    white-space: nowrap
+}
+
+.preview-controls input[type=range] {
+    margin: 0;
+    padding: 0
+}
+
+.extension-chooser {
+    display: grid;
+    grid-template-columns:1fr 1fr;
+    gap: .5rem
+}
+
+.extension-chooser label {
+    background-color: rgba(0, 0, 0, .2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: .75rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all .2s
+}
+
+.extension-chooser label:has(input:checked) {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color-dark);
+    color: var(--bg-dark);
+    font-weight: 500
+}
+
+.extension-chooser input {
+    margin-right: .75rem
+}
+
+.extension-chooser .ext-mono {
+    font-family: var(--font-mono);
+    font-size: .9em;
+    opacity: .8
+}
+
+.scopes-grid {
+    display: grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem
+}
+
+.scope-item {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, .2);
+    padding: .75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color)
+}
+
+.scope-item input[type=checkbox] {
+    margin-right: .75rem
+}
+
+.scope-item label {
+    margin: 0;
+    font-weight: 400;
+    color: var(--text-primary);
+    cursor: pointer
+}
+
+#scopes-container fieldset {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem 1.5rem 1.5rem;
+    margin-bottom: 1rem;
+    background-color: rgba(0, 0, 0, .1)
+}
+
+#scopes-container legend {
+    padding: 0 .5rem;
+    color: var(--primary-color);
+    font-weight: 500
+}
+
+#key-created-result {
+    background: rgba(74, 222, 128, .1);
+    border: 1px solid var(--hot-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    opacity: 0;
+    transition: opacity .3s ease-in-out;
+    pointer-events: none
+}
+
+#key-created-result.visible {
+    opacity: 1;
+    pointer-events: auto
+}
+
+#key-created-result strong {
+    color: var(--hot-color);
+    display: block;
+    margin-bottom: .5rem
+}
+
+#key-created-result .key-display {
+    display: flex;
+    gap: .5rem
+}
+
+#key-created-result input {
+    font-family: var(--font-mono);
+    margin: 0;
+    background-color: rgba(0, 0, 0, .4)
+}
+
+#simple-config-editor-view {
+    display: grid;
+    grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    align-items: start
+}
+
+.config-column-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem
+}
+
+#simple-config-editor-view .card-content {
+    padding-top: 1.5rem
+}
+
+.config-field {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem
+}
+
+.config-field-list {
+    align-items: flex-start
+}
+
+.config-field .config-field-label {
+    flex: 0 0 200px;
+    text-align: right;
+    color: var(--text-primary);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: .9rem;
+    word-break: break-word
+}
+
+.config-field input {
+    margin-bottom: 0
+}
+
+.config-field input[type=checkbox] {
+    flex-grow: 0;
+    width: auto
+}
+
+.config-list-container {
+    flex-grow: 1
+}
+
+.config-list-item {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    margin-bottom: .5rem
+}
+
+.config-list-item input {
+    margin-bottom: 0
+}
+
+.add-item-btn {
+    margin-top: .5rem
+}
+
+.config-nested-header {
+    font-family: var(--font-mono);
+    color: var(--primary-color);
+    margin: 1.5rem 0 1rem 0;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.1rem
+}
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: 8px;
+    z-index: 1001;
+    opacity: 0;
+    transition: opacity .5s, bottom .5s;
+    font-weight: 500
+}
+
+.toast.show {
+    bottom: 30px;
+    opacity: 1
+}
+
+.toast.success {
+    background-color: var(--hot-color);
+    color: #111
+}
+
+.toast.error {
+    background-color: var(--cold-color);
+    color: #111
+}
+
+.hidden-by-selection, .hidden-view {
+    display: none !important
+}
+
+.spinner {
+    margin: 2rem auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite
+}
+
+@media (max-width: 1200px) {
+    #simple-config-editor-view, .grid, .top-grid {
+        grid-template-columns:repeat(auto-fit, minmax(min(100%, 400px), 1fr))
+    }
+}
+
+@media (max-width: 1024px) {
+    nav {
+        position: fixed;
+        height: 100%;
+        z-index: 100;
+        transform: translateX(-100%);
+        border-right: 1px solid var(--border-color);
+        backdrop-filter: blur(10px);
+        background: rgba(10, 10, 15, .8)
+    }
+
+    body.nav-open nav {
+        transform: translateX(0)
+    }
+
+    main {
+        width: 100%
+    }
+
+    #menu-toggle {
+        display: block;
+        order: -1
+    }
+
+    header h1 {
+        font-size: 1.5rem
+    }
+
+    .page-content {
+        padding: 1rem
+    }
+
+    .config-field {
+        flex-direction: column;
+        align-items: flex-start
+    }
+
+    .config-field .config-field-label {
+        text-align: left;
+        margin-bottom: .5rem;
+        flex-basis: auto
+    }
+}
+
+@media (max-width: 768px) {
+    #simple-config-editor-view, .grid, .top-grid {
+        grid-template-columns:1fr
+    }
+}</style>
+<div id=login-screen>
+    <div class=login-box>
+        <svg class=login-logo viewBox="0 0 100 100" xmlns=http://www.w3.org/2000/svg>
+            <path d="M20,80 C40,20 60,20 80,80 L20,80 Z" fill=none stroke=currentColor stroke-width=8/>
+                <path d="M30,80 C45,40 55,40 70,80" fill=none stroke=currentColor stroke-width=6/>
+        </svg>
+        <h1>Sarracenia</h1>
+        <p>Enter your API key to access the dashboard.
+        <form id=login-form><input id=apiKeyInput placeholder=sarr_... required type=password>
+            <button type=submit>Login</button>
+        </form>
+        <p id=login-error></div>
+</div>
+<div id=dashboard>
+    <div id=backdrop></div>
+    <nav>
+        <h2>
+            <svg class=logo-icon viewBox="0 0 100 100" xmlns=http://www.w3.org/2000/svg>
+                <path d="M20,80 C40,20 60,20 80,80 L20,80 Z" fill=none stroke=currentColor stroke-width=8/>
+                    <path d="M30,80 C45,40 55,40 70,80" fill=none stroke=currentColor stroke-width=6/>
+            </svg>
+            Sarracenia
+        </h2>
+        <div data-scope=stats:read>
+            <button class=nav-btn data-target=stats-content>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+                          stroke-linecap=round stroke-linejoin=round/>
+                </svg>
+                Stats
+            </button>
+        </div>
+        <div data-scope=whitelist:read>
+            <button class=nav-btn data-target=whitelist-content>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap=round
+                          stroke-linejoin=round/>
+                </svg>
+                Whitelist
+            </button>
+        </div>
+        <div data-scope=templates:read>
+            <button class=nav-btn data-target=templates-content>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+                          stroke-linecap=round stroke-linejoin=round/>
+                </svg>
+                Templates
+            </button>
+        </div>
+        <div data-scope=markov:read>
+            <button class=nav-btn data-target=markov-content>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V8.25a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 8.25v7.5A2.25 2.25 0 0 0 6.75 18Z"
+                          stroke-linecap=round stroke-linejoin=round/>
+                </svg>
+                Markov
+            </button>
+        </div>
+        <hr style="margin:.5rem 0">
+        <div data-scope=auth:manage>
+            <button class=nav-btn data-target=auth-content>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v-2.25l.938-.937c.406-.406.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"
+                          stroke-linecap=round stroke-linejoin=round/>
+                </svg>
+                API Keys
+            </button>
+        </div>
+        <div data-scope=server:config>
+            <button class=nav-btn data-target=server-content>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 0 1 2.585.122l.22.177a2.25 2.25 0 0 0 2.121 0l.22-.177a2.25 2.25 0 0 1 2.585-.122c.55.219 1.02.684 1.11 1.226l.099.542a2.25 2.25 0 0 0 1.121 1.952l.433.25a2.25 2.25 0 0 1 1.226 2.585l-.122.585a2.25 2.25 0 0 0 0 2.121l.122.585a2.25 2.25 0 0 1-1.226 2.585l-.433.25a2.25 2.25 0 0 0-1.121 1.952l-.099.542a2.25 2.25 0 0 1-1.11 1.226 2.25 2.25 0 0 1-2.585-.122l-.22-.177a2.25 2.25 0 0 0-2.121 0l-.22.177a2.25 2.25 0 0 1-2.585.122 2.25 2.25 0 0 1-1.11-1.226l-.099-.542a2.25 2.25 0 0 0-1.121-1.952l-.433.25a2.25 2.25 0 0 1-1.226-2.585l.122-.585a2.25 2.25 0 0 0 0-2.121l-.122-.585a2.25 2.25 0 0 1 1.226-2.585l.433.25a2.25 2.25 0 0 0 1.121-1.952l.099.542ZM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"
+                          stroke-linecap=round stroke-linejoin=round/>
+                </svg>
+                Config
+            </button>
+        </div>
+        <div data-scope=server:control>
+            <button class=nav-btn data-target=application-content>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M21.75 17.25v-.228a4.5 4.5 0 0 0-.12-1.03l-2.268-9.64a3.375 3.375 0 0 0-3.285-2.65H8.125a3.375 3.375 0 0 0-3.285 2.65l-2.268 9.64a4.5 4.5 0 0 0-.12 1.03v.228m15.562 0a2.25 2.25 0 0 1-2.25 2.25h-11.062a2.25 2.25 0 0 1-2.25-2.25m15.562 0-1.34-9.642m-12.882 0L2.25 17.25"
+                          stroke-linecap=round stroke-linejoin=round/>
+                </svg>
+                Application
+            </button>
+        </div>
+        <div class=logout-section>
+            <button class=secondary id=logoutBtn>Logout</button>
+        </div>
+    </nav>
+    <main>
+        <header>
+            <button id=menu-toggle>
+                <svg fill=none stroke=currentColor stroke-width=1.5 viewBox="0 0 24 24"
+                     xmlns=http://www.w3.org/2000/svg>
+                    <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap=round stroke-linejoin=round/>
+                </svg>
+            </button>
+            <h1 id=page-title>Welcome<span>.</span></h1></header>
+        <div class=page-content id=stats-content>
+            <div class=content-wrapper>
+                <div class=page-header><h2>Live Statistics</h2>
+                    <button class=icon-only id=refreshStatsBtn title=Refresh type=button>
+                        <svg class=btn-icon fill=none stroke=currentColor stroke-width=1.5
+                             viewBox="0 0 24 24" xmlns=http://www.w3.org/2000/svg>
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" stroke-linecap=round
+                                  stroke-linejoin=round/>
+                                <path d="M21 3v5h-5" stroke-linecap=round stroke-linejoin=round/>
+                        </svg>
+                    </button>
+                </div>
+                <div class=top-grid>
+                    <div class="card stat-card"><h2>Total Hits</h2>
+                        <p id=total-hits>0</div>
+                    <div class="card stat-card"><h2>Unique IPs</h2>
+                        <p id=unique-ips>0</div>
+                    <div class="card stat-card"><h2>Unique Agents</h2>
+                        <p id=unique-agents>0</div>
+                    <div class=card data-scope=stats:read id=application-info-card>
+                        <div class=card-header style=border-bottom:none;padding-bottom:1rem><h3
+                                style=color:var(--primary-color)>Application Info</h3></div>
+                        <div class=card-content style=padding-top:0>
+                            <ul class=vitals-list id=application-info-list>
+                                <li><span class=label>Status</span> <span
+                                        class="value status-indicator">Connecting...</span>
+                                <li><span class=label>Version</span> <span class=value>N/A</span>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card table-container">
+                    <div class=card-header><h3>IP Address Analysis</h3>
+                        <button class="secondary show-all-btn" data-table=ips type=button>Show Top 5</button>
+                    </div>
+                    <table id=ips-table>
+                        <thead>
+                        <tr>
+                            <th class=sortable data-sort=last_seen>Status
+                            <th class=sortable data-sort=ip_address>IP Address
+                            <th class=sortable data-sort=total_hits>Hits
+                            <th class=sortable data-sort=last_seen>Last Seen
+                        <tbody>
+                    </table>
+                </div>
+                <br>
+                <div class="card table-container">
+                    <div class=card-header><h3>User Agent Analysis</h3>
+                        <button class="secondary show-all-btn" data-table=agents type=button>Show Top 5</button>
+                    </div>
+                    <table id=agents-table>
+                        <thead>
+                        <tr>
+                            <th class=sortable data-sort=last_seen>Status
+                            <th class=sortable data-sort=user_agent>User Agent
+                            <th class=sortable data-sort=total_hits>Hits
+                            <th class=sortable data-sort=last_seen>Last Seen
+                        <tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class=page-content id=whitelist-content>
+            <div class=content-wrapper style=max-width:900px>
+                <div class=page-header><h2>Manage Whitelists</h2>
+                    <button class=icon-only id=refreshWhitelistBtn title=Refresh type=button>
+                        <svg class=btn-icon fill=none stroke=currentColor stroke-width=1.5
+                             viewBox="0 0 24 24" xmlns=http://www.w3.org/2000/svg>
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" stroke-linecap=round
+                                  stroke-linejoin=round/>
+                                <path d="M21 3v5h-5" stroke-linecap=round stroke-linejoin=round/>
+                        </svg>
+                    </button>
+                </div>
+                <p style=max-width:80ch;color:var(--text-secondary);margin-top:-1rem;margin-bottom:2rem>Whitelisted
+                    clients bypass the tarpit and receive a standard 404 Not Found response. Use exact matching for IP
+                    addresses and User Agents.
+                <div class=card>
+                    <div class=card-content>
+                        <div class=tab-nav id=whitelist-tab-nav>
+                            <button class="active tab-btn" data-type=ip>IP Addresses</button>
+                            <button class=tab-btn data-type=useragent>User Agents</button>
+                        </div>
+                        <div class="active tab-panel" id=ip-panel>
+                            <form class=add-whitelist-form data-scope=whitelist:write id=add-ip-whitelist-form><input
+                                    id=addIpValue placeholder="e.g., 1.2.3.4" required>
+                                <button type=submit>Add IP</button>
+                                <button class="secondary import-whitelist-btn" data-type=ip type=button>Import .txt
+                                </button>
+                            </form>
+                            <ul class=whitelist-list id=ip-whitelist-list></ul>
+                        </div>
+                        <div class=tab-panel id=useragent-panel>
+                            <form class=add-whitelist-form data-scope=whitelist:write id=add-useragent-whitelist-form>
+                                <input id=addUserAgentValue placeholder="e.g., Googlebot/2.1" required>
+                                <button type=submit>Add User Agent</button>
+                                <button class="secondary import-whitelist-btn" data-type=useragent type=button>Import
+                                    .txt
+                                </button>
+                            </form>
+                            <ul class=whitelist-list id=useragent-whitelist-list></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class=page-content id=templates-content>
+            <div class=content-wrapper>
+                <div class="grid template-grid">
+                    <div class=card>
+                        <div class=card-header><h3>Manage Templates</h3>
+                            <button class=icon-only id=refreshTemplateListBtn title=Refresh type=button>
+                                <svg class=btn-icon fill=none stroke=currentColor stroke-width=1.5
+                                     viewBox="0 0 24 24" xmlns=http://www.w3.org/2000/svg>
+                                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" stroke-linecap=round
+                                          stroke-linejoin=round/>
+                                        <path d="M21 3v5h-5" stroke-linecap=round stroke-linejoin=round/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class=card-content><label for=templateSelector>Select or Create Template</label> <select
+                                id=templateSelector style=margin-bottom:1rem>
+                            <option>-- Load Templates --
+                        </select>
+                            <div class=hidden-by-selection id=create-template-form>
+                                <form data-scope=templates:write id=createTemplateFormInternal><label
+                                        for=newTemplateNameInput>New Template Base Name</label> <input
+                                        id=newTemplateNameInput placeholder=my-new-page required
+                                        style=margin-bottom:.5rem> <label for=template-extension
+                                                                          style=margin-bottom:.5rem>Template
+                                    Type</label>
+                                    <div class=extension-chooser><label><input checked name=template-extension
+                                                                               type=radio value=.tmpl.html> Full
+                                        Template <span class=ext-mono>(.tmpl.html)</span></label> <label><input
+                                            name=template-extension type=radio value=.part.html> Partial <span
+                                            class=ext-mono>(.part.html)</span></label></div>
+                                    <small class=helper-text>Use Partials for reusable components like headers or
+                                        footers.</small> <label for=newTemplateContent>Initial Content</label> <textarea
+                                            id=newTemplateContent></textarea>
+                                    <button type=submit>Create Template</button>
+                                </form>
+                                <div class=template-actions style=margin-top:1rem>
+                                    <button disabled id=testNewTemplateBtn type=button>Test Unsaved</button>
+                                </div>
+                            </div>
+                            <div class=hidden-by-selection id=edit-template-actions>
+                                <form data-scope=templates:write id=templateEditForm
+                                      style=display:flex;flex-direction:column;flex-grow:1><label for=templateContent>Template
+                                    Content</label> <textarea id=templateContent></textarea>
+                                    <div class=template-actions>
+                                        <button type=submit>Save Changes</button>
+                                        <button id=testTemplateBtn type=button>Test Unsaved</button>
+                                    </div>
+                                </form>
+                                <hr data-scope=templates:write>
+                                <button class=danger data-scope=templates:write id=deleteTemplateBtn type=button>Delete
+                                    Selected Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card hidden-by-selection" id=template-preview-card>
+                        <div class=card-header><h3>Template Preview</h3>
+                            <button class=icon-only disabled id=openPreviewNewTabBtn title="Open in New Tab"
+                                    type=button>
+                                <svg class=btn-icon fill=none stroke=currentColor stroke-width=1.5
+                                     viewBox="0 0 24 24" xmlns=http://www.w3.org/2000/svg>
+                                    <path d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-4.5 4.5V6H18"
+                                          stroke-linecap=round stroke-linejoin=round/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class=card-content>
+                            <iframe id=template-preview-frame></iframe>
+                            <div class=preview-controls><label for=previewThreat>Threat Level:</label> <input
+                                    id=previewThreat max=100 min=0 style=flex-grow:1 type=range value=1> <span
+                                    id=previewThreatValue style=width:3ch;text-align:right>1</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class=page-content id=markov-content>
+            <div class=content-wrapper>
+                <div class=grid>
+                    <div class=card>
+                        <div class=card-header><h3>Manage Models</h3>
+                            <button class=icon-only id=refreshModelListBtn title=Refresh type=button>
+                                <svg class=btn-icon fill=none stroke=currentColor stroke-width=1.5
+                                     viewBox="0 0 24 24" xmlns=http://www.w3.org/2000/svg>
+                                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" stroke-linecap=round
+                                          stroke-linejoin=round/>
+                                        <path d="M21 3v5h-5" stroke-linecap=round stroke-linejoin=round/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class=card-content><label for=modelSelector>Select or Create Model</label> <select
+                                id=modelSelector style=margin-bottom:1rem>
+                            <option>-- Load Models --
+                        </select>
+                            <div class=hidden-by-selection data-scope=markov:write id=create-model-form>
+                                <form id=createModelFormInternal><h4>Create New Model</h4><label for=createModelName>New
+                                    Model Name</label> <input id=createModelName placeholder="e.g., tech-docs" required>
+                                    <label for=createModelOrder>Model Order</label> <input id=createModelOrder required
+                                                                                           type=number value=2>
+                                    <button type=submit>Create Model</button>
+                                </form>
+                            </div>
+                            <div class=hidden-by-selection id=existing-model-actions>
+                                <form data-scope=markov:write id=trainModelForm><label for=trainCorpusFile>Train with
+                                    Corpus File (.txt)</label> <input accept=.txt id=trainCorpusFile required type=file>
+                                    <button type=submit>Train Selected Model</button>
+                                    <div class=form-status id=trainModelStatus></div>
+                                </form>
+                                <hr data-scope=markov:write>
+                                <form data-scope=markov:write id=pruneModelForm><label for=pruneMinFreq>Prune with Min
+                                    Frequency</label> <input id=pruneMinFreq required type=number value=1>
+                                    <button type=submit>Prune Selected Model</button>
+                                </form>
+                                <hr>
+                                <div style=display:flex;flex-direction:column;gap:1rem>
+                                    <button id=exportModelBtn type=button>Export Selected Model</button>
+                                    <button class=danger data-scope=markov:write id=deleteModelBtn type=button>Delete
+                                        Selected Model
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class=card data-scope=markov:write>
+                        <div class=card-header><h3>Global Actions</h3></div>
+                        <div class=card-content>
+                            <form id=importModelForm><label for=importModelFile>Import Model from File (.json)</label>
+                                <input accept=.json id=importModelFile required type=file>
+                                <button type=submit>Import Model</button>
+                            </form>
+                            <hr>
+                            <form id=pruneVocabForm><label for=pruneVocabMinFreq>Prune Global Vocabulary</label> <input
+                                    id=pruneVocabMinFreq required type=number value=2>
+                                <button type=submit>Prune Vocabulary</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class=page-content id=auth-content>
+            <div class=content-wrapper>
+                <div class=grid>
+                    <div class="card table-container">
+                        <div class=card-header><h3>Existing API Keys</h3>
+                            <button class=icon-only id=refreshKeysListBtn title=Refresh type=button>
+                                <svg class=btn-icon fill=none stroke=currentColor stroke-width=1.5
+                                     viewBox="0 0 24 24" xmlns=http://www.w3.org/2000/svg>
+                                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" stroke-linecap=round
+                                          stroke-linejoin=round/>
+                                        <path d="M21 3v5h-5" stroke-linecap=round stroke-linejoin=round/>
+                                </svg>
+                            </button>
+                        </div>
+                        <table id=keys-table style=width:100%>
+                            <thead>
+                            <tr>
+                                <th>ID
+                                <th>Description
+                                <th>Scopes
+                                <th>
+                            <tbody>
+                        </table>
+                    </div>
+                    <div class=card>
+                        <div class=card-header><h3>Create New Key</h3></div>
+                        <div class=card-content>
+                            <form id=createKeyForm><label for=createKeyDesc>Description</label> <input id=createKeyDesc
+                                                                                                       required>
+                                <div class=label-with-helpers><label>Scopes</label>
+                                    <div class=scope-helpers><a id=selectAllScopes>Select All</a> <a
+                                            id=deselectAllScopes>Deselect All</a></div>
+                                </div>
+                                <div id=scopes-container></div>
+                                <button type=submit>Create Key</button>
+                            </form>
+                            <div id=key-created-result><strong>Key Created! Copy it now, it will not be shown
+                                again.</strong>
+                                <div class=key-display><input id=newKeyValue readonly>
+                                    <button id=copyKeyBtn type=button>Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class=page-content id=server-content>
+            <div class=content-wrapper>
+                <div class=page-header><h2>Application Configuration</h2>
+                    <button id=configEditorToggleBtn type=button>Switch to Raw JSON</button>
+                </div>
+                <form id=updateSimpleConfigForm>
+                    <div id=simple-config-editor-view>
+                        <div class=config-column-wrapper>
+                            <div class=card>
+                                <div class=card-header><h3>Server Config</h3></div>
+                                <div class="card-content no-padding-top">
+                                    <div id=server_config-editor></div>
+                                </div>
+                            </div>
+                            <div class=card>
+                                <div class=card-header style=border:none;margin-bottom:0><h3
+                                        style=color:var(--primary-color)>Save Changes</h3></div>
+                                <div class=card-content style=padding-top:1rem><p
+                                        style=color:var(--text-secondary);max-width:65ch;margin-top:0>Changes saved here
+                                    will overwrite the entire configuration file on disk. Some changes may require a
+                                    manual server restart to take full effect.</p>
+                                    <button style=width:100% type=submit>Save & Apply Configuration</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class=card>
+                            <div class=card-header><h3>Template Config</h3></div>
+                            <div class="card-content no-padding-top">
+                                <div id=template_config-editor></div>
+                            </div>
+                        </div>
+                        <div class=card>
+                            <div class=card-header><h3>Threat Config</h3></div>
+                            <div class="card-content no-padding-top">
+                                <div id=threat_config-editor></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <div class=hidden-view id=raw-config-editor-view>
+                    <div class=card style=flex-grow:1>
+                        <div class=card-content style=display:flex;flex-direction:column;flex-grow:1>
+                            <form id=updateRawConfigForm style=display:flex;flex-direction:column;flex-grow:1><textarea
+                                    id=appConfigText required style=min-height:500px></textarea>
+                                <button id=updateConfigBtn type=submit>Update & Save Config</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class=page-content id=application-content>
+            <div class=content-wrapper style=max-width:800px>
+                <div class="card danger-card">
+                    <div class=card-header>
+                        <h3 style=display:flex;align-items:center;gap:.5rem>
+                            <svg fill=none stroke=currentColor stroke-width=1.5 style=width:24px;height:24px
+                                 viewBox="0 0 24 24" xmlns=http://www.w3.org/2000/svg>
+                                <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                                      stroke-linecap=round stroke-linejoin=round/>
+                            </svg>
+                            Danger Zone
+                        </h3>
+                    </div>
+                    <div class=card-content style=display:flex;flex-direction:column;gap:1.5rem>
+                        <div><h4>Restart Server</h4>
+                            <p style=color:var(--text-secondary);margin-top:0;margin-bottom:1rem>This action will
+                                initiate a graceful restart of the Sarracenia server process. The server will
+                                re-initialize using the latest configuration from disk.</p>
+                            <button class=warning id=restartBtn style=width:100%;margin:0 type=button>Restart Server
+                            </button>
+                        </div>
+                        <hr>
+                        <div><h4>Shutdown Server</h4>
+                            <p style=color:var(--text-secondary);margin-top:0;margin-bottom:1rem>This action will
+                                initiate a graceful shutdown of the server process. It cannot be undone from this
+                                dashboard and the application will need to be started manually.</p>
+                            <button class=danger id=shutdownBtn style=width:100%;margin:0 type=button>Shutdown Server
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<div class=toast id=toast></div>
+<input accept=.txt class=hidden-view id=whitelist-import-file-input type=file>
+<script>document.addEventListener("DOMContentLoaded", () => {
+    const r = {
+        apiKey: null,
+        scopes: new Set,
+        activeTab: "",
+        dataCache: {
+            stats: null,
+            templates: null,
+            models: null,
+            keys: null,
+            version: null,
+            config: null,
+            whitelist: {ip: null, useragent: null}
+        },
+        uiState: {
+            ipsTable: {showAll: !1, sort: {key: "last_seen", dir: "desc"}},
+            agentsTable: {showAll: !1, sort: {key: "total_hits", dir: "desc"}},
+            whitelistImportType: null
+        }
+    }, s = {
+        pageTitle: document.getElementById("page-title"),
+        toast: document.getElementById("toast"),
+        spinner: '<div class="spinner"></div>',
+        body: document.body
+    };
+    let n;
+
+    function d(e, t = "success", a = 3e3) {
+        a = "error" === t ? 6e3 : a;
+        s.toast.textContent = e, s.toast.className = "toast show " + t, setTimeout(() => {
+            s.toast.className = "toast"
+        }, a)
+    }
+
+    function l(e, t, a) {
+        let n = "";
+        var o;
+        a && ((o = new Date).setTime(o.getTime() + 24 * a * 60 * 60 * 1e3), n = "; expires=" + o.toUTCString()), document.cookie = e + "=" + (t || "") + n + "; path=/; SameSite=Strict; Secure"
+    }
+
+    function c(e) {
+        document.cookie = e + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;"
+    }
+
+    function m() {
+        c("sarr-api-key"), r.apiKey = null, location.reload()
+    }
+
+    async function t(e) {
+        var t = document.getElementById("login-error"), a = document.querySelector("#login-form button");
+        y(a, !0), t.textContent = " ";
+        try {
+            var n = await fetch("/api/auth/me", {headers: {"sarr-auth": e}});
+            if (!n.ok) throw new Error(`Authentication failed (status ${n.status})`);
+            var o = await n.json(),
+                i = (r.apiKey = e, r.scopes = new Set(o.scopes), e && l("sarr-api-key", e, 3650), document.getElementById("login-screen").style.display = "none", document.getElementById("dashboard").style.display = "flex", u(), document.querySelector('nav div[data-scope]:not([style*="display: none"]) .nav-btn'));
+            i ? i.click() : s.pageTitle.textContent = "No Permissions"
+        } catch (e) {
+            t.textContent = e.message, c("sarr-api-key")
+        } finally {
+            y(a, !1)
+        }
+    }
+
+    function u() {
+        const a = r.scopes.has("*");
+        document.querySelectorAll("[data-scope]").forEach(e => {
+            var t = e.dataset.scope, t = a || r.scopes.has(t);
+            e.style.display = t ? "" : "none"
+        })
+    }
+
+    function a(e) {
+        r.activeTab = e, document.querySelectorAll(".nav-btn").forEach(e => e.classList.remove("active")), document.querySelectorAll(".page-content").forEach(e => e.classList.remove("active"));
+        var t = document.querySelector(`.nav-btn[data-target="${e}"]`), a = document.getElementById(e);
+        if (t && a) switch (t.classList.add("active"), a.classList.add("active"), s.pageTitle.innerHTML = t.textContent.trim() + "<span>.</span>", s.body.classList.remove("nav-open"), "stats-content" === e ? (r.dataCache.stats || i(), E(), n = setInterval(() => {
+            i()
+        }, 15e3)) : E(), e) {
+            case"whitelist-content":
+                null === r.dataCache.whitelist.ip && b();
+                break;
+            case"templates-content":
+                r.dataCache.templates || k(), S();
+                break;
+            case"markov-content":
+                r.dataCache.models || $(), C();
+                break;
+            case"auth-content":
+                r.dataCache.keys || M();
+                break;
+            case"server-content":
+                r.dataCache.config || x()
+        }
+    }
+
+    async function p(e, t = {}, a = !0, n = null, o = null) {
+        if (null === r.apiKey) return m(), Promise.reject(new Error("Not logged in."));
+        n && y(n, !0), o && (o.textContent = "Processing..."), t.headers = new Headers(t.headers || {}), t.headers.set("sarr-auth", r.apiKey);
+        try {
+            var i = await fetch(e, t);
+            if (i.ok) return 204 === i.status || 202 === i.status || (a ? i.json() : i);
+            {
+                if (401 === i.status) return m(), Promise.reject(new Error("Unauthorized"));
+                var l = await i.text();
+                let e;
+                try {
+                    e = JSON.parse(l)
+                } catch (e) {
+                }
+                throw new Error(e?.error || l || "HTTP Error " + i.status)
+            }
+        } catch (e) {
+            throw "Unauthorized" !== e.message && d(e.message, "error"), e
+        } finally {
+            n && y(n, !1), o && (o.textContent = "")
+        }
+    }
+
+    function y(e, t) {
+        e && ((e.disabled = t) ? (e.dataset.originalText || (t = e.querySelector(".btn-text"), e.dataset.originalText = (t || e).innerHTML), e.classList.add("loading")) : (e.dataset.originalText && ((t = e.querySelector(".btn-text")) ? t.innerHTML = e.dataset.originalText : e.innerHTML = e.dataset.originalText, delete e.dataset.originalText), e.classList.remove("loading")))
+    }
+
+    const g = e => e ? new Date(e).toLocaleString() : "N/A", v = e => {
+        e = (Date.now() - new Date(e).getTime()) / 1e3;
+        return e < 600 ? {c: "hot"} : e < 3600 ? {c: "warm"} : e < 86400 ? {c: "tepid"} : e < 259200 ? {c: "cold"} : {c: "frozen"}
+    };
+
+    function o(n, e, o, t) {
+        const a = document.querySelector(`#${n} tbody`);
+        var e = [...e], i = (o.dir && e.sort((e, t) => {
+            let a = e[o.key], n = t[o.key];
+            return "string" == typeof a && (a = a.toLowerCase()), "string" == typeof n && (n = n.toLowerCase()), (a < n ? -1 : 1) * ("asc" === o.dir ? 1 : -1)
+        }), ("ips-table" === n ? r.uiState.ipsTable : r.uiState.agentsTable).showAll);
+        const l = i ? e : e.slice(0, 5);
+        a.style.opacity = 0, setTimeout(() => {
+            var e = "ips-table" === n ? "Waiting for the first request to be logged." : "No user agents recorded yet.";
+            a.innerHTML = 0 === l.length ? `<tr class="empty-row"><td colspan="${t}">${e}</td></tr>` : l.map(e => {
+                var t = v(e.last_seen), a = "ips-table" === n ? e.ip_address : e.user_agent;
+                return `<tr><td><span class="recency-dot ${t.c}"></span></td><td title="${a}">${a}</td><td>${e.total_hits.toLocaleString()}</td><td>${g(e.last_seen)}</td></tr>`
+            }).join(""), a.style.opacity = 1
+        }, 150)
+    }
+
+    async function i(e) {
+        var t = document.querySelector("#ips-table tbody"), a = document.querySelector("#agents-table tbody");
+        t.innerHTML || (t.innerHTML = `<tr><td colspan="4">${s.spinner}</td></tr>`), a.innerHTML || (a.innerHTML = `<tr><td colspan="4">${s.spinner}</td></tr>`);
+        try {
+            var [n, o, i, l] = await Promise.all([p("/api/stats/summary", {}, !0, e), p("/api/stats/top_ips"), p("/api/stats/top_user_agents"), p("/api/server/version")]);
+            r.dataCache.stats = {summary: n, ips: o, agents: i}, r.dataCache.version = l, h()
+        } catch (e) {
+            "Unauthorized" !== e.message && (t.innerHTML = '<tr class="empty-row"><td colspan="4">Failed to load stats.</td></tr>', a.innerHTML = '<tr class="empty-row"><td colspan="4">Failed to load stats.</td></tr>')
+        }
+    }
+
+    function h() {
+        var e, t = r.dataCache.stats, a = r.dataCache.version;
+        t && a && (document.getElementById("total-hits").textContent = (t.summary.total_requests || 0).toLocaleString(), document.getElementById("unique-ips").textContent = (t.summary.unique_ips || 0).toLocaleString(), document.getElementById("unique-agents").textContent = (t.summary.unique_user_agents || 0).toLocaleString(), (e = document.getElementById("application-info-list")) && (e.innerHTML = `<li><span class="label">Status</span><span class="value status-indicator">Live | ${(new Date).toLocaleTimeString()}</span></li><li><span class="label">Version</span><span class="value">${a.version}</span></li><li><span class="label">Commit</span><span class="value">${a.commit}</span></li><li><span class="label">Build Date</span><span class="value">${new Date(a.build_date).toLocaleString()}</span></li>`), o("ips-table", t.ips, r.uiState.ipsTable.sort, 4), o("agents-table", t.agents, r.uiState.agentsTable.sort, 4))
+    }
+
+    function E() {
+        clearInterval(n)
+    }
+
+    async function f(t, e) {
+        var a = document.getElementById(t + "-whitelist-list");
+        a.innerHTML = s.spinner;
+        try {
+            var n = await p("/api/whitelist/" + t, {}, !0, e);
+            r.dataCache.whitelist[t] = n || [], w(t)
+        } catch (e) {
+            a.innerHTML = `<li class="list-empty-state">Failed to load ${t} whitelist.</li>`
+        }
+    }
+
+    async function b(e) {
+        var t = document.getElementById("ip-whitelist-list"), a = document.getElementById("useragent-whitelist-list");
+        t.innerHTML = a.innerHTML = s.spinner;
+        try {
+            var [n, o] = await Promise.all([p("/api/whitelist/ip", {}, !0, e), p("/api/whitelist/useragent", {}, !0, e)]);
+            r.dataCache.whitelist.ip = n || [], r.dataCache.whitelist.useragent = o || [], w("ip"), w("useragent")
+        } catch (e) {
+            t.innerHTML = '<li class="list-empty-state">Failed to load IP whitelist.</li>', a.innerHTML = '<li class="list-empty-state">Failed to load User Agent whitelist.</li>'
+        }
+    }
+
+    function w(t) {
+        var e = document.getElementById(t + "-whitelist-list"), a = r.dataCache.whitelist[t];
+        if (null !== a) {
+            var n = "ip" === t ? "No IP addresses are whitelisted." : "No User Agents are whitelisted.";
+            const o = r.scopes.has("*") || r.scopes.has("whitelist:write");
+            0 === a.length ? e.innerHTML = `<li class="list-empty-state">${n}</li>` : e.innerHTML = a.map(e => `
+                <li class="whitelist-item" data-value="${e}">
+                    <span class="value" title="${e}">${e}</span>
+                    ${o ? `<button type="button" class="remove-item-btn" data-type="${t}" data-value="${e}" title="Remove item">✕</button>` : ""}
+                </li>`).join("")
+        }
+    }
+
+    async function I(e, t, a, n) {
+        var o = "add" === e ? "POST" : "DELETE", i = "/api/whitelist/" + t;
+        try {
+            return await p(i, {
+                method: o,
+                body: JSON.stringify({value: a})
+            }, !0, n), "add" !== e && d(`${"ip" === t ? "IP" : "User Agent"} removed.`), await f(t), !0
+        } catch (e) {
+            return !1
+        }
+    }
+
+    function B(e) {
+        var t = document.getElementById("template-preview-frame"), a = document.getElementById("openPreviewNewTabBtn");
+        e ? (t.src = e, a.disabled = !1) : (t.src = "about:blank", a.disabled = !0)
+    }
+
+    async function L(e, t) {
+        if (e) try {
+            var a = await (await p(`/api/templates/preview?name=${e}&threat=` + t, {}, !1)).blob();
+            B(URL.createObjectURL(a))
+        } catch (e) {
+            B(!1)
+        } else B(!1)
+    }
+
+    async function T(e, t, a) {
+        document.getElementById("template-preview-card").classList.remove("hidden-by-selection");
+        try {
+            var n = await (await p("/api/templates/test?threat=" + t, {method: "POST", body: e}, !1, a)).blob();
+            B(URL.createObjectURL(n)), d("Preview updated.")
+        } catch (e) {
+            B(!1)
+        }
+    }
+
+    async function S() {
+        var e, t = document.getElementById("templateSelector").value, a = "--new--" === t, n = t && !a;
+        document.getElementById("edit-template-actions").classList.toggle("hidden-by-selection", !n), document.getElementById("create-template-form").classList.toggle("hidden-by-selection", !a), document.getElementById("template-preview-card").classList.toggle("hidden-by-selection", !n), n ? (e = await p("/api/templates/" + t, {}, !((n = document.getElementById("templateContent")).value = "Loading...")).then(e => e.text()).catch(() => "Failed to load template."), n.value = e, L(t, document.getElementById("previewThreat").value)) : (document.getElementById("templateContent").value = "", B(!1), a && (document.getElementById("newTemplateNameInput").focus(), document.getElementById("template-preview-card").classList.add("hidden-by-selection")))
+    }
+
+    async function k(e) {
+        const t = document.getElementById("templateSelector");
+        t.innerHTML = s.spinner;
+        try {
+            var a = await p("/api/templates");
+            a && (r.dataCache.templates = a, t.innerHTML = '<option value="">-- Select a Template --</option><option value="--new--" data-scope="templates:write">-- Create New Template --</option>', a.forEach(e => t.add(new Option(e, e))), t.value = e || "")
+        } catch (e) {
+            t.innerHTML = "<option>Failed to load</option>"
+        } finally {
+            u(), S()
+        }
+    }
+
+    function C() {
+        var e = document.getElementById("modelSelector").value, t = "--new--" === e, e = e && !t;
+        document.getElementById("existing-model-actions").classList.toggle("hidden-by-selection", !e), document.getElementById("create-model-form").classList.toggle("hidden-by-selection", !t), t && document.getElementById("createModelName").focus()
+    }
+
+    async function $(e) {
+        const t = document.getElementById("modelSelector");
+        t.innerHTML = s.spinner;
+        try {
+            var a = await p("/api/markov/models");
+            a && (r.dataCache.models = a, t.innerHTML = '<option value="">-- Select a Model --</option><option value="--new--" data-scope="markov:write">-- Create New Model --</option>', a.forEach(e => t.add(new Option(e.Name + ` (Order: ${e.Order})`, e.Name))), t.value = e || "")
+        } catch (e) {
+            t.innerHTML = "<option>Failed to load</option>"
+        } finally {
+            u(), C()
+        }
+    }
+
+    async function M() {
+        var t = document.querySelector("#keys-table tbody");
+        t.innerHTML = `<tr><td colspan="4">${s.spinner}</td></tr>`;
+        try {
+            var e = await p("/api/auth/keys");
+            e && (r.dataCache.keys = e, t.innerHTML = 0 === e.length ? '<tr class="empty-row"><td colspan="4"><p>No API keys found.</p>The first key you create will be a master key with full permissions.</td></tr>' : e.map(e => `<tr><td title="${e.id}">${e.id}</td><td title="${e.description}">${e.description}</td><td class="scopes-cell" title="${e.scopes.join(", ")}">${e.scopes.join(", ")}</td><td><button type="button" class="danger remove-item-btn" data-key-id="${e.id}" ${1 === e.id ? 'disabled title="Cannot delete master key"' : ""}>✕</button></td></tr>`).join(""))
+        } catch (e) {
+            t.innerHTML = '<tr class="empty-row"><td colspan="4">Failed to load API keys.</td></tr>'
+        }
+    }
+
+    async function x() {
+        try {
+            var e = await p("/api/server/config");
+            e && (r.dataCache.config = e, document.getElementById("appConfigText").value = JSON.stringify(e, null, 2), document.getElementById("appConfigText").dispatchEvent(new Event("input")), A(e.server_config, "server_config", document.getElementById("server_config-editor")), A(e.template_config, "template_config", document.getElementById("template_config-editor")), A(e.threat_config, "threat_config", document.getElementById("threat_config-editor")))
+        } catch (e) {
+        }
+    }
+
+    function A(e, t = "", a, n = 0) {
+        0 === n && (a.innerHTML = "");
+        for (const s in e) {
+            const d = e[s];
+            var o = t ? t + "." + s : s;
+            if ("object" != typeof d || Array.isArray(d) || null === d) {
+                var i = document.createElement("div"),
+                    l = (i.className = "config-field", i.style.paddingLeft = +n + "rem", document.createElement("label"));
+                if (l.className = "config-field-label", l.textContent = s, 0 < n && (l.style.flexBasis = "180px"), i.appendChild(l), Array.isArray(d)) {
+                    i.classList.add("config-field-list");
+                    const c = document.createElement("div"),
+                        m = (c.className = "config-list-container", c.dataset.key = o, () => {
+                            c.innerHTML = "", d.forEach((e, t) => {
+                                var a = document.createElement("div");
+                                a.className = "config-list-item", a.innerHTML = `<input type="text" value="${e}" data-index="${t}"><button type="button" class="remove-item-btn" data-index="${t}" title="Remove item">✕</button>`, c.appendChild(a)
+                            });
+                            var e = document.createElement("button");
+                            e.type = "button", e.className = "add-item-btn", e.textContent = "Add Item", c.appendChild(e)
+                        });
+                    c.addEventListener("click", e => {
+                        e.target.classList.contains("remove-item-btn") && (d.splice(e.target.dataset.index, 1), m()), e.target.classList.contains("add-item-btn") && (d.push(""), m())
+                    }), m(), i.appendChild(c)
+                } else {
+                    var r = document.createElement("input");
+                    r.dataset.key = o, "boolean" == typeof d ? (r.type = "checkbox", r.checked = d) : ("number" == typeof d ? (r.type = "number", r.step = "any") : r.type = "text", r.value = d), l.htmlFor = "config-input-" + o, r.id = "config-input-" + o, i.appendChild(r)
+                }
+                a.appendChild(i)
+            } else {
+                l = document.createElement("h4");
+                l.className = "config-nested-header", l.textContent = s, l.style.paddingLeft = +n + "rem", a.appendChild(l), A(d, o, a, n + 1)
+            }
+        }
+    }
+
+    {
+        document.getElementById("menu-toggle").addEventListener("click", () => s.body.classList.toggle("nav-open")), document.getElementById("backdrop").addEventListener("click", () => s.body.classList.remove("nav-open")), document.querySelectorAll(".nav-btn").forEach(e => e.addEventListener("click", () => a(e.dataset.target))), document.getElementById("logoutBtn").addEventListener("click", m), document.getElementById("login-form").addEventListener("submit", e => {
+            e.preventDefault(), t(document.getElementById("apiKeyInput").value)
+        }), document.getElementById("refreshStatsBtn").addEventListener("click", e => i(e.target.closest("button"))), document.querySelectorAll(".show-all-btn").forEach(e => e.addEventListener("click", e => {
+            var t = "ips" === e.target.dataset.table ? "ipsTable" : "agentsTable";
+            r.uiState[t].showAll = !r.uiState[t].showAll, e.target.textContent = r.uiState[t].showAll ? "Show Top 5" : "Show All", h()
+        })), document.querySelectorAll(".sortable").forEach(a => a.addEventListener("click", () => {
+            var e = "ips-table" === a.closest("table").id ? "ipsTable" : "agentsTable", t = a.dataset.sort,
+                e = r.uiState[e].sort;
+            e.key === t ? e.dir = "desc" === e.dir ? "asc" : "desc" : (e.key = t, e.dir = "desc"), document.querySelectorAll(`#${a.closest("table").id} .sortable`).forEach(e => e.removeAttribute("data-sort-dir")), e.dir && a.setAttribute("data-sort-dir", e.dir), h()
+        })), document.getElementById("refreshWhitelistBtn").addEventListener("click", e => b(e.target.closest("button"))), document.getElementById("whitelist-tab-nav").addEventListener("click", e => {
+            var t;
+            e.target.matches(".tab-btn") && (t = e.target.dataset.type, document.querySelectorAll("#whitelist-tab-nav .tab-btn").forEach(e => e.classList.remove("active")), document.querySelectorAll("#whitelist-content .tab-panel").forEach(e => e.classList.remove("active")), e.target.classList.add("active"), document.getElementById(t + "-panel").classList.add("active"), null === r.dataCache.whitelist[t]) && f(t)
+        }), document.getElementById("add-ip-whitelist-form").addEventListener("submit", async e => {
+            e.preventDefault();
+            var t = document.getElementById("addIpValue");
+            await I("add", "ip", t.value, e.target.querySelector("button")) && (d("IP address added."), t.value = "")
+        }), document.getElementById("add-useragent-whitelist-form").addEventListener("submit", async e => {
+            e.preventDefault();
+            var t = document.getElementById("addUserAgentValue");
+            await I("add", "useragent", t.value, e.target.querySelector("button")) && (d("User agent added."), t.value = "")
+        }), document.getElementById("whitelist-content").addEventListener("click", e => {
+            var t, a, n = e.target.closest(".remove-item-btn"), e = e.target.closest(".import-whitelist-btn");
+            n ? ({
+                type: t,
+                value: a
+            } = n.dataset, confirm(`Are you sure you want to remove "${a}" from the ${t} whitelist?`) && I("remove", t, a, n)) : e && (r.uiState.whitelistImportType = e.dataset.type, document.getElementById("whitelist-import-file-input").click())
+        }), document.getElementById("whitelist-import-file-input").addEventListener("change", e => {
+            var t = e.target.files[0], a = r.uiState.whitelistImportType;
+            t && a && !async function (e, o) {
+                var t = new FileReader;
+                t.onload = async a => {
+                    a = a.target.result.split("\n").map(e => e.trim()).filter(e => 0 < e.length);
+                    if (0 === a.length) d("File is empty or contains no valid lines.", "error"); else {
+                        d(`Starting import of ${a.length} items...`);
+                        let e = 0, t = 0;
+                        for (const n of a) await I("add", o, n, null) ? e++ : t++, await new Promise(e => setTimeout(e, 50));
+                        d(`Import complete. Added: ${e}, Failed: ${t}.`, 0 < t ? "error" : "success")
+                    }
+                }, t.onerror = () => d("Failed to read the file.", "error"), t.readAsText(e)
+            }(t, a), e.target.value = null, r.uiState.whitelistImportType = null
+        }), document.getElementById("refreshTemplateListBtn").addEventListener("click", e => k(null, e.target.closest("button"))), document.getElementById("templateSelector").addEventListener("change", S);
+        var e = document.getElementById("previewThreat");
+        const N = document.getElementById("previewThreatValue");
+        e.addEventListener("input", e => {
+            N.textContent = e.target.value
+        }), e.addEventListener("change", e => {
+            L(document.getElementById("templateSelector").value, e.target.value)
+        }), document.getElementById("newTemplateContent").addEventListener("input", e => {
+            document.getElementById("testNewTemplateBtn").disabled = 0 === e.target.value.length, 0 < e.target.value.length ? document.getElementById("template-preview-card").classList.remove("hidden-by-selection") : document.getElementById("template-preview-card").classList.add("hidden-by-selection")
+        }), document.getElementById("templateEditForm").addEventListener("submit", async e => {
+            e.preventDefault();
+            var t = document.getElementById("templateSelector").value;
+            t ? (await p("/api/templates/" + t, {
+                method: "PUT",
+                body: document.getElementById("templateContent").value
+            }, !0, e.submitter), d("Template saved!")) : d("No template selected", "error")
+        }), document.getElementById("createTemplateFormInternal").addEventListener("submit", async e => {
+            e.preventDefault();
+            var t = document.getElementById("newTemplateNameInput").value.trim();
+            t ? (await p("/api/templates/" + (t = "" + t + document.querySelector('input[name="template-extension"]:checked').value), {
+                method: "PUT",
+                body: document.getElementById("newTemplateContent").value
+            }, !0, e.submitter), d(`Template ${t} created`), e.target.reset(), document.getElementById("testNewTemplateBtn").disabled = !0, await k(t)) : d("Base name cannot be empty", "error")
+        }), document.getElementById("deleteTemplateBtn").addEventListener("click", e => {
+            const t = document.getElementById("templateSelector").value;
+            t ? confirm(`This will permanently delete the template file '${t}' from disk.
+
+This action cannot be undone. Are you sure?`) && p("/api/templates/" + t, {method: "DELETE"}, !0, e.target).then(() => {
+                d("Deleted " + t), k()
+            }) : d("No template selected", "error")
+        }), document.getElementById("testTemplateBtn").addEventListener("click", e => T(document.getElementById("templateContent").value, document.getElementById("previewThreat").value, e.target)), document.getElementById("testNewTemplateBtn").addEventListener("click", e => T(document.getElementById("newTemplateContent").value, document.getElementById("previewThreat").value, e.target)), document.getElementById("openPreviewNewTabBtn").addEventListener("click", () => {
+            var e = document.getElementById("template-preview-frame").src;
+            e && "about:blank" !== e && window.open(e, "_blank")
+        }), document.getElementById("refreshModelListBtn").addEventListener("click", e => $(null, e.target.closest("button"))), document.getElementById("modelSelector").addEventListener("change", C), document.getElementById("createModelFormInternal").addEventListener("submit", async e => {
+            e.preventDefault();
+            var t = document.getElementById("createModelName").value,
+                a = parseInt(document.getElementById("createModelOrder").value);
+            await p("/api/markov/models", {
+                method: "POST",
+                body: JSON.stringify({name: t, order: a})
+            }, !0, e.submitter), d(`Model "${t}" created.`), e.target.reset(), await $(t)
+        }), document.getElementById("deleteModelBtn").addEventListener("click", e => {
+            const t = document.getElementById("modelSelector").value;
+            t ? confirm(`This will permanently delete the model '${t}' and all of its data from the database.
+
+This action cannot be undone. Are you sure?`) && p("/api/markov/models/" + t, {method: "DELETE"}, !0, e.target).then(() => {
+                d("Deleted " + t), $()
+            }) : d("No model selected", "error")
+        }), document.getElementById("exportModelBtn").addEventListener("click", async e => {
+            var t = document.getElementById("modelSelector").value;
+            if (t) try {
+                var a = await (await p(`/api/markov/models/${t}/export`, {}, !1, e.target)).blob(),
+                    n = URL.createObjectURL(a), o = document.createElement("a");
+                o.href = n, o.download = t + ".json", o.click(), URL.revokeObjectURL(n)
+            } catch (e) {
+            } else d("No model selected", "error")
+        }), document.getElementById("trainModelForm").addEventListener("submit", async e => {
+            e.preventDefault();
+            var t, a = document.getElementById("modelSelector").value;
+            a ? (t = document.getElementById("trainCorpusFile").files[0]) ? (await p(`/api/markov/models/${a}/train`, {
+                method: "POST",
+                body: t
+            }, !1, e.submitter, document.getElementById("trainModelStatus")), d(`Training for "${a}" complete!`), e.target.reset()) : d("Select corpus file.", "error") : d("No model selected", "error")
+        }), document.getElementById("pruneModelForm").addEventListener("submit", e => {
+            e.preventDefault();
+            const t = document.getElementById("modelSelector").value;
+            t ? p(`/api/markov/models/${t}/prune`, {
+                method: "POST",
+                body: JSON.stringify({minFreq: parseInt(document.getElementById("pruneMinFreq").value)})
+            }, !0, e.submitter).then(() => d(`Pruned "${t}".`)) : d("No model selected", "error")
+        }), document.getElementById("pruneVocabForm").addEventListener("submit", e => {
+            e.preventDefault(), p("/api/markov/vocabulary/prune", {
+                method: "POST",
+                body: JSON.stringify({minFreq: parseInt(document.getElementById("pruneVocabMinFreq").value)})
+            }, !0, e.submitter).then(() => d("Global vocabulary pruned."))
+        }), document.getElementById("importModelForm").addEventListener("submit", e => {
+            e.preventDefault();
+            var t, a = document.getElementById("importModelFile").files[0];
+            a ? ((t = new FormData).append("model", a), d("Importing model..."), p("/api/markov/import", {
+                method: "POST",
+                body: t
+            }, !0, e.submitter).then(() => {
+                d("Model imported!"), $(), e.target.reset()
+            })) : d("Select model file.", "error")
+        }), document.getElementById("refreshKeysListBtn").addEventListener("click", e => M(e.target.closest("button"))), document.getElementById("createKeyForm").addEventListener("submit", async e => {
+            e.preventDefault(), document.getElementById("key-created-result").classList.remove("visible");
+            var t = document.querySelector("#scope-\\*").checked ? ["*"] : Array.from(document.querySelectorAll("#scopes-container input:checked")).map(e => e.value),
+                t = {description: document.getElementById("createKeyDesc").value, scopes: t};
+            try {
+                var a = await p("/api/auth/keys", {method: "POST", body: JSON.stringify(t)}, !0, e.submitter);
+                a?.raw_key && ("" === r.apiKey && (d("Master key created! Your session is now secured.", "success", 5e3), r.apiKey = a.raw_key, l("sarr-api-key", a.raw_key, 7)), document.getElementById("newKeyValue").value = a.raw_key, document.getElementById("key-created-result").classList.add("visible"), M(), e.target.reset(), document.querySelector("#scope-\\*").dispatchEvent(new Event("change")))
+            } catch (e) {
+            }
+        }), document.getElementById("copyKeyBtn").addEventListener("click", e => {
+            navigator.clipboard.writeText(document.getElementById("newKeyValue").value), d("Copied to clipboard!")
+        }), document.querySelector("#keys-table").addEventListener("click", e => {
+            if (e.target.matches("button.remove-item-btn[data-key-id]")) {
+                const t = e.target.dataset.keyId;
+                confirm(`This will permanently delete API Key ID ${t}.
+
+This action cannot be undone. Are you sure?`) && p("/api/auth/keys/" + t, {method: "DELETE"}, !0, e.target).then(() => {
+                    d(`Key ${t} deleted.`), M()
+                })
+            }
+        }), document.getElementById("selectAllScopes").addEventListener("click", () => document.querySelectorAll('#scopes-container input[type="checkbox"]:not(:disabled):not(#scope-\\*)').forEach(e => e.checked = !0)), document.getElementById("deselectAllScopes").addEventListener("click", () => document.querySelectorAll('#scopes-container input[type="checkbox"]:not(:disabled):not(#scope-\\*):checked').forEach(e => e.checked = !1)), document.getElementById("restartBtn").addEventListener("click", e => {
+            confirm("Are you sure you want to restart the server?") && p("/api/server/restart", {method: "POST"}, !0, e.target).then(() => {
+                d("Restart command sent."), location.reload()
+            })
+        }), document.getElementById("shutdownBtn").addEventListener("click", e => {
+            confirm("Are you sure you want to shut down the server?\n\nThis action is irreversible from the dashboard.") && p("/api/server/shutdown", {method: "POST"}, !0, e.target).then(() => d("Shutdown command sent."))
+        }), document.getElementById("updateSimpleConfigForm").addEventListener("submit", e => {
+            e.preventDefault();
+            {
+                e = e.target.querySelector("button[type=submit]");
+                const n = JSON.parse(JSON.stringify(r.dataCache.config)),
+                    t = (document.querySelectorAll("#updateSimpleConfigForm [data-key]").forEach(e => {
+                        var t = e.dataset.key.split("."), a = t.slice(0, -1).reduce((e, t) => e[t], n),
+                            t = t[t.length - 1];
+                        e.classList.contains("config-list-container") ? a[t] = Array.from(e.querySelectorAll(".config-list-item input")).map(e => e.value) : "checkbox" === e.type ? a[t] = e.checked : a[t] = "number" === e.type ? parseFloat(e.value) : e.value
+                    }), JSON.stringify(n, null, 2));
+                p("/api/server/config", {method: "PUT", body: t}, !0, e).then(() => {
+                    d("Config saved & applied!"), document.getElementById("appConfigText").value = t, document.getElementById("appConfigText").dispatchEvent(new Event("input")), r.dataCache.config = n
+                }).catch(() => {
+                })
+            }
+        }), document.getElementById("updateRawConfigForm").addEventListener("submit", e => {
+            e.preventDefault();
+            const t = document.getElementById("appConfigText").value;
+            p("/api/server/config", {method: "PUT", body: t}, !0, e.submitter).then(() => {
+                d("Config saved!"), r.dataCache.config = JSON.parse(t), x()
+            })
+        }), document.getElementById("configEditorToggleBtn").addEventListener("click", e => {
+            var t = document.getElementById("simple-config-editor-view").parentElement,
+                a = document.getElementById("raw-config-editor-view"), n = !t.classList.contains("hidden-view");
+            if (!n) try {
+                var o = JSON.parse(document.getElementById("appConfigText").value);
+                A(o.server_config, "server_config", document.getElementById("server_config-editor")), A(o.template_config, "template_config", document.getElementById("template_config-editor")), A(o.threat_config, "threat_config", document.getElementById("threat_config-editor"))
+            } catch (e) {
+                return void d("Cannot switch: Raw JSON is invalid.", "error")
+            }
+            t.classList.toggle("hidden-view"), a.classList.toggle("hidden-view"), e.target.textContent = n ? "Switch to Simple Editor" : "Switch to Raw JSON"
+        }), document.getElementById("appConfigText").addEventListener("input", t => {
+            var a = document.getElementById("updateConfigBtn");
+            try {
+                JSON.parse(t.target.value), t.target.classList.remove("invalid"), a.disabled = !1
+            } catch (e) {
+                t.target.classList.add("invalid"), a.disabled = !0
+            }
+        })
+    }
+    {
+        const q = document.getElementById("scopes-container");
+        q.innerHTML = Object.entries({
+            Master: ["*"],
+            Authentication: ["auth:manage"],
+            Server: ["server:config", "server:control"],
+            Statistics: ["stats:read"],
+            Whitelist: ["whitelist:read", "whitelist:write"],
+            Templates: ["templates:read", "templates:write"],
+            "Markov Models": ["markov:read", "markov:write"]
+        }).map(([e, t]) => `<fieldset><legend>${e}</legend><div class="scopes-grid">` + t.map(e => `<div class="scope-item"><input type="checkbox" id="scope-${e}" name="scope" value="${e}"><label for="scope-${e}">${e}</label></div>`).join("") + "</div></fieldset>").join(""), q.querySelector("#scope-\\*").addEventListener("change", e => {
+            const t = e.target.checked;
+            q.querySelectorAll('input[type="checkbox"]').forEach(e => {
+                "*" !== e.value && (e.disabled = t) && (e.checked = !1)
+            })
+        })
+    }
+    e = function (e) {
+        var a = e + "=", n = document.cookie.split(";");
+        for (let t = 0; t < n.length; t++) {
+            let e = n[t];
+            for (; " " === e.charAt(0);) e = e.substring(1, e.length);
+            if (0 === e.indexOf(a)) return e.substring(a.length, e.length)
+        }
+        return null
+    }("sarr-api-key");
+    t(null === e ? "" : e)
+});</script>

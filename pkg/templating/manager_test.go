@@ -242,7 +242,7 @@ func BenchmarkExecute_DataGeneration(b *testing.B) {
 }
 
 // BenchmarkExecute_Markov isolates the performance of querying the database-backed
-// Markov generator. This is a critical metric.
+// Markov generator.
 func BenchmarkExecute_Markov(b *testing.B) {
 	tm := setupTestManager(b)
 	content := `<h1>{{markovSentence "test_model" 15}}</h1><p>{{markovParagraphs "test_model" 2 3 5 10 20}}</p>`

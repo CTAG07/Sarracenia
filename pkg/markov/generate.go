@@ -205,9 +205,6 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 				slog.Int("generated_length", generatedCount),
 			)
 			// Append EOC token to the output string.
-			if !firstWord {
-				builder.WriteString(g.tokenizer.Separator())
-			}
 			builder.WriteString(g.tokenizer.EOC())
 			break
 		}
@@ -238,9 +235,10 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 			}
 			if !firstWord {
 				builder.WriteString(g.tokenizer.Separator())
+			} else {
+				firstWord = false
 			}
 			builder.WriteString(text)
-			firstWord = false
 
 			prefix = append(prefix[1:], nextToken)
 		}

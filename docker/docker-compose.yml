@@ -1,0 +1,24 @@
+# Sarracenia Docker Compose File
+# For usage instructions, see the main project README.
+services:
+  sarracenia:
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile.${BUILD_TYPE:-native}
+    container_name: sarracenia
+    restart: unless-stopped
+    ports:
+      - "7277:7277"
+      - "7278:7278"
+    volumes:
+      - sarracenia-data:/app
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:7278" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  sarracenia-data:
+    driver: local
