@@ -58,6 +58,10 @@ jobs:
         id: commit
         run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
+      - name: Get current date
+        id: date
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -72,7 +76,7 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT=${{ steps.commit.outputs.sha }}
-            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            BUILD_DATE=${{ steps.date.outputs.date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -89,7 +93,7 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT=${{ steps.commit.outputs.sha }}
-            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            BUILD_DATE=${{ steps.date.outputs.date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
