@@ -47,7 +47,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository,, }}
           tags: |
             # Create tags based on the git tag: v1.2.3, v1.2, and latest
             type=semver,pattern={{version}}
@@ -75,8 +75,8 @@ jobs:
           file: ./docker/Dockerfile.cgo
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}-cgo
-            ghcr.io/${{ github.repository }}:latest-cgo
+            ghcr.io/${{ github.repository,, }}:${{ steps.meta.outputs.version }}-cgo
+            ghcr.io/${{ github.repository,, }}:latest-cgo
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
