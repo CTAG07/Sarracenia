@@ -1718,7 +1718,7 @@ th.sortable[data-sort-dir=desc]::after {
     function l(e, t, a) {
         let n = "";
         var o;
-        a && ((o = new Date).setTime(o.getTime() + 24 * a * 60 * 60 * 1e3), n = "; expires=" + o.toUTCString()), document.cookie = e + "=" + (t || "") + n + "; path=/; SameSite=Strict; Secure"
+        a && ((o = new Date).setTime(o.getTime() + 24 * a * 60 * 60 * 1e3), n = "; expires=" + o.toUTCString()), document.cookie = e + "=" + (t || "") + n + "; path=/; SameSite=Strict"
     }
 
     function c(e) {
@@ -2135,7 +2135,7 @@ This action cannot be undone. Are you sure?`) && p("/api/markov/models/" + t, {m
                 t = {description: document.getElementById("createKeyDesc").value, scopes: t};
             try {
                 var a = await p("/api/auth/keys", {method: "POST", body: JSON.stringify(t)}, !0, e.submitter);
-                a?.raw_key && ("" === r.apiKey && (d("Master key created! Your session is now secured.", "success", 5e3), r.apiKey = a.raw_key, l("sarr-api-key", a.raw_key, 7)), document.getElementById("newKeyValue").value = a.raw_key, document.getElementById("key-created-result").classList.add("visible"), M(), e.target.reset(), document.querySelector("#scope-\\*").dispatchEvent(new Event("change")))
+                a?.raw_key && ("" === r.apiKey && (d("Master key created! Your session is now secured.", "success", 5e3), r.apiKey = a.raw_key, l("sarr-api-key", a.raw_key, 3650)), document.getElementById("newKeyValue").value = a.raw_key, document.getElementById("key-created-result").classList.add("visible"), M(), e.target.reset(), document.querySelector("#scope-\\*").dispatchEvent(new Event("change")))
             } catch (e) {
             }
         }), document.getElementById("copyKeyBtn").addEventListener("click", e => {
