@@ -2,6 +2,13 @@
 
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/CTAG07/Sarracenia)](https://goreportcard.com/report/github.com/CTAG07/Sarracenia)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/CTAG07/Sarracenia)](https://golang.org)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/CTAG07/Sarracenia)](https://github.com/CTAG07/Sarracenia/releases/latest)
+[![Docker Image](https://img.shields.io/badge/ghcr.io-ctag07/sarracenia-blue?logo=docker)](https://github.com/CTAG07/Sarracenia/pkgs/container/sarracenia)
+[![Repo size](https://img.shields.io/github/repo-size/CTAG07/Sarracenia)](https://github.com/CTAG07/Sarracenia)
+
+[![Sarracenia Test / Build / Release](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml)
+[![CodeQL Advanced](https://github.com/CTAG07/Sarracenia/actions/workflows/codeql.yml/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/codeql.yml)
 
 A Go-based anti-scraper tarpit inspired by Nepenthes.
 

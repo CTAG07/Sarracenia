@@ -1,8 +1,10 @@
 # Sarracenia Templating Engine
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/CTAG07/Sarracenia/pkg/templating.svg)](https://pkg.go.dev/github.com/CTAG07/Sarracenia/pkg/templating)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/CTAG07/Sarracenia)](https://golang.org)
+[![Part of Sarracenia](https://img.shields.io/badge/Part%20of-Sarracenia-8b5cf6)](https://github.com/CTAG07/Sarracenia)
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/CTAG07/Sarracenia)](https://goreportcard.com/report/github.com/CTAG07/Sarracenia)
-[![Go Reference](https://pkg.go.dev/badge/github.com/CTAG07/Sarracenia/pkg/templating.svg)](https://pkg.go.dev/github.com/CTAG07/Sarracenia/pkg/templating)
 
 A high-performance, configurable, and extensible Go templating engine designed for generating complex and dynamic web
 pages.
