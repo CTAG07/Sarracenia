@@ -97,9 +97,12 @@ jobs:
         run: |
           mkdir release-assets
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ./release-assets/sarracenia-linux-amd64 ./cmd/main
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o ./release-assets/sarracenia-linux-arm64 ./cmd/main
+          CGO_ENABLED=0 GOOS=linux GOARM=7 GOARCH=arm go build -ldflags="-s -w" -o ./release-assets/sarracenia-linux-armv7 ./cmd/main
           CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ./release-assets/sarracenia-windows-amd64.exe ./cmd/main
           CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o ./release-assets/sarracenia-darwin-amd64 ./cmd/main
           CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o ./release-assets/sarracenia-darwin-arm64 ./cmd/main
+          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o ./release-assets/sarracenia-windows-arm64.exe ./cmd/main
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
