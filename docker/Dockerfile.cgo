@@ -1,5 +1,5 @@
-// Credit to this blog post for the method to build a CGO application minimally:
-// https://blog.2read.net/posts/building-a-minimalist-docker-container-with-alpine-linux-and-golang/
+# Credit to this blog post for the method to build a CGO application minimally:
+# https://blog.2read.net/posts/building-a-minimalist-docker-container-with-alpine-linux-and-golang/
 
 FROM golang:1.24.5-alpine AS builder
 
