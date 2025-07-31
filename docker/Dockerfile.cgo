@@ -3,6 +3,10 @@
 
 FROM golang:1.24.5-alpine AS builder
 
+ARG VERSION=dev
+ARG COMMIT=none
+ARG BUILD_DATE=unknown
+
 RUN apk add --no-cache build-base
 
 WORKDIR /build
@@ -14,7 +18,8 @@ COPY . .
 
 ARG DIST_DIR=/dist
 
-RUN CGO_ENABLED=1 go build -ldflags='-s -w' -trimpath -o ${DIST_DIR}/sarracenia ./cmd/main
+RUN LDFLAGS="-X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" && \
+    CGO_ENABLED=1 go build -ldflags="${LDFLAGS} -s -w" -trimpath -o ${DIST_DIR}/sarracenia ./cmd/main
 
 RUN ldd ${DIST_DIR}/sarracenia | tr -s '[:blank:]' '\n' | grep '^/' | \
     xargs -I % sh -c 'mkdir -p $(dirname ${DIST_DIR}/%); cp % ${DIST_DIR}/%;'

@@ -27,12 +27,17 @@ echo "  2) CGO with go-sqlite3 (Slightly higher performance, requires GCC)"
 
 read -p "Enter choice [1-2]: " choice
 
+VERSION=$(git describe --tags --abbrev=0)
+COMMIT=$(git rev-parse --short HEAD)
+BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+LDFLAGS="-X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'"
+
 if [ "$choice" == "2" ]; then
     echo "Building with CGO enabled..."
-    CGO_ENABLED=1 go build -ldflags="-s -w" -o ./sarracenia ./cmd/main/
+    CGO_ENABLED=1 go build -ldflags="${LDFLAGS} -s -w" -o ./sarracenia ./cmd/main/
 else
     echo "Building with native Go SQLite driver..."
-    CGO_ENABLED=0 go build -ldflags="-s -w" -o ./sarracenia ./cmd/main/
+    CGO_ENABLED=0 go build -ldflags="${LDFLAGS} -s -w" -o ./sarracenia ./cmd/main/
 fi
 
 echo "Build complete."

@@ -1,5 +1,9 @@
 FROM golang:1.24.5 AS builder
 
+ARG VERSION=dev
+ARG COMMIT=none
+ARG BUILD_DATE=unknown
+
 RUN apt-get update && apt-get install -y --no-install-recommends git
 
 WORKDIR /src
@@ -9,7 +13,8 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/sarracenia ./cmd/main
+RUN LDFLAGS="-X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" && \
+    CGO_ENABLED=0 go build -ldflags="${LDFLAGS} -s -w" -o /app/sarracenia ./cmd/main
 
 FROM scratch
 
