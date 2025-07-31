@@ -32,6 +32,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set repository name to lowercase
+        id: string
+        run: echo "repo_lc=${{ github.repository,, }}" >> $GITHUB_OUTPUT
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -43,7 +47,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository,, }}
+          images: ghcr.io/${{ steps.string.outputs.repo_lc }}
           tags: |
             # Create tags based on the git tag: v1.2.3, v1.2, and latest
             type=semver,pattern={{version}}
@@ -71,8 +75,8 @@ jobs:
           file: ./docker/Dockerfile.cgo
           push: true
           tags: |
-            ghcr.io/${{ github.repository,, }}:${{ steps.meta.outputs.version }}-cgo
-            ghcr.io/${{ github.repository,, }}:latest-cgo
+            ghcr.io/${{ steps.string.outputs.repo_lc }}:${{ steps.meta.outputs.version }}-cgo
+            ghcr.io/${{ steps.string.outputs.repo_lc }}:latest-cgo
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
