@@ -150,7 +150,7 @@ func (a *WhitelistAPI) getList(w http.ResponseWriter, r *http.Request, listType 
 	rows, err := a.db.Query("SELECT value FROM whitelist WHERE type = ?", listType)
 	if err != nil {
 		a.logger.Error("Failed to query whitelist", "type", listType, "error", err)
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to retreive whitelist: %v", err))
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to retrieve whitelist: %v", err))
 		return
 	}
 	defer func(rows *sql.Rows) {

@@ -94,8 +94,21 @@ func run(actionChan chan string) (string, error) {
 		logger.Error("Failed to setup whitelist schema", "error", err)
 	}
 
-	tarpitHttpServer := &http.Server{Addr: config.Server.ServerAddr}
-	apiHttpServer := &http.Server{Addr: config.Server.ApiAddr}
+	// API server should be fast and protected by reasonably short timeouts.
+	apiHttpServer := &http.Server{
+		Addr:              config.Server.ApiAddr,
+		ReadHeaderTimeout: 15 * time.Second, // ReadHeaderTimeout only times out on the header so large body texts can still be sent for training.
+		WriteTimeout:      15 * time.Second, // Nothing should really take this long, the largest template outputs can maybe be in MB, but hopefully not something that takes 15 seconds to send.
+		IdleTimeout:       60 * time.Second, // Clean up idle keep-alive connections.
+	}
+
+	// Tarpit server must have a long WriteTimeout to accommodate delays and drip-feeding.
+	tarpitHttpServer := &http.Server{
+		Addr:         config.Server.ServerAddr,
+		ReadTimeout:  5 * time.Second,  // Still protect against slow requests.
+		WriteTimeout: 0,                // No timeout on writes so the tarpit can drip-feed for a long time.
+		IdleTimeout:  60 * time.Second, // Clean up idle keep-alive connections.
+	}
 
 	server, err := NewServer(config, logger, db, actionChan)
 	if err != nil {

@@ -58,7 +58,7 @@ func (m *MarkovAPI) handleListAndCreateModels(w http.ResponseWriter, r *http.Req
 		models, err := m.gen.GetModelInfos(r.Context())
 		if err != nil {
 			m.logger.Error("Failed to get model infos", "error", err)
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to retreive models: %v", err))
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to retrieve models: %v", err))
 			return
 		}
 		// Convert map to slice for consistent JSON output
