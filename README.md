@@ -41,10 +41,10 @@ This is the simplest method. It uses the pre-compiled binaries provided with eac
       /your/sarracenia/folder/
       ├── sarracenia              # The binary you downloaded
       ├── config.json             # Copied from the extracted 'example' folder
+      ├── dashboard/
+      │   ├── static/
+      │   └── templates/
       └── data/
-          ├── dashboard/          # Copied from 'example/data'
-          │   ├── static/
-          │   └── templates/
           ├── templates/          # Copied from 'example/data'
           │   └── ...
           └── wordlist.txt        # Copied from 'example/data'
