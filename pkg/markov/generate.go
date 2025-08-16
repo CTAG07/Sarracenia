@@ -236,7 +236,7 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 				return "", fmt.Errorf("failed to get text for generated token %d: %w", nextToken, err)
 			}
 			if !firstWord {
-				builder.WriteString(g.tokenizer.Separator(text, lastWord))
+				builder.WriteString(g.tokenizer.Separator(lastWord, text))
 			} else {
 				firstWord = false
 			}
