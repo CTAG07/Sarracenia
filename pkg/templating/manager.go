@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/CTAG07/Sarracenia/pkg/markov"
 	"html/template"
 	"io"
 	"log/slog"
@@ -13,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/CTAG07/Sarracenia/pkg/markov"
 )
 
 var (
@@ -62,16 +63,17 @@ func InitWordList(path string) error {
 // parsing, and executing templates in a concurrent-safe manner.
 // All methods are concurrent-safe.
 type TemplateManager struct {
-	logger        *slog.Logger
-	config        *TemplateConfig
-	whitelistMap  map[string]struct{}
-	markovGen     *markov.Generator
-	markovModels  map[string]markov.ModelInfo
-	templates     *template.Template
-	templateNames []string
-	funcMap       template.FuncMap
-	templateDir   string
-	mu            sync.RWMutex
+	logger         *slog.Logger
+	config         *TemplateConfig
+	whitelistMap   map[string]struct{}
+	markovGen      *markov.Generator
+	markovModels   map[string]markov.ModelInfo
+	templates      *template.Template
+	cleanTemplates *template.Template
+	templateNames  []string
+	funcMap        template.FuncMap
+	templateDir    string
+	mu             sync.RWMutex
 }
 
 // NewTemplateManager creates, initializes, and returns a new TemplateManager.
@@ -177,6 +179,28 @@ func (tm *TemplateManager) SetConfig(config *TemplateConfig) {
 	for _, path := range config.PathWhitelist {
 		tm.whitelistMap[path] = struct{}{}
 	}
+	if tm.config.MarkovEnabled {
+		var opts []markov.Option
+		if tm.config.MarkovSeparator != "" {
+			opts = append(opts, markov.WithSeparator(tm.config.MarkovSeparator))
+		}
+		if tm.config.MarkovEoc != "" {
+			opts = append(opts, markov.WithEOC(tm.config.MarkovEoc))
+		}
+		if tm.config.MarkovSplitRegex != "" {
+			opts = append(opts, markov.WithSeparatorRegex(tm.config.MarkovSplitRegex))
+		}
+		if tm.config.MarkovEocRegex != "" {
+			opts = append(opts, markov.WithEOCRegex(tm.config.MarkovEocRegex))
+		}
+		if tm.config.MarkovSeparatorExcRegex != "" {
+			opts = append(opts, markov.WithSeparatorExcRegex(tm.config.MarkovSeparatorExcRegex))
+		}
+		if tm.config.MarkovEocExcRegex != "" {
+			opts = append(opts, markov.WithEOCExcRegex(tm.config.MarkovEocExcRegex))
+		}
+		tm.markovGen.SetTokenizer(markov.NewDefaultTokenizer(opts...))
+	}
 }
 
 // Refresh reloads all templates from the filesystem and, if enabled, refreshes
@@ -230,6 +254,13 @@ func (tm *TemplateManager) Refresh() error {
 	tm.templates = newParsedFiles
 	tm.templateNames = names
 	tm.logger.Info("Loaded template and partial files", "count", len(parsedFiles.Templates())-1) // Subtract one for the root template
+
+	// Create a clean clone for string executions after all parsing is complete.
+	tm.cleanTemplates, err = tm.templates.Clone()
+	if err != nil {
+		tm.logger.Error("failed to create a clean clone of templates", "error", err)
+		return err
+	}
 
 	if tm.config.MarkovEnabled {
 		tm.logger.Info("Loading markov models...")
@@ -313,16 +344,18 @@ func (tm *TemplateManager) ExecuteTemplateString(w io.Writer, content string, da
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	// Create a new, temporary template map copy so that the temp string can use partials properly.
-	tempSet, err := tm.templates.Clone()
+	// Clone the clean, unexecuted template set to avoid race conditions and execution state issues.
+	tempSet, err := tm.cleanTemplates.Clone()
 	if err != nil {
-		return fmt.Errorf("failed to clone templates: %w", err)
+		return fmt.Errorf("failed to clone clean templates for string execution: %w", err)
 	}
 
+	// Parse the user-provided content string into this fresh clone.
 	t, err := tempSet.Parse(content)
 	if err != nil {
 		return fmt.Errorf("failed to parse string template: %w", err)
 	}
 
+	// Execute the temporary template.
 	return t.Execute(w, data)
 }

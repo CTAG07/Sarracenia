@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/CTAG07/Sarracenia/pkg/templating"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/CTAG07/Sarracenia/pkg/templating"
 
 	"github.com/CTAG07/Sarracenia/pkg/markov"
 )

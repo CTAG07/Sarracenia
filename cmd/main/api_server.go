@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/CTAG07/Sarracenia/pkg/templating"
 	"log/slog"
 	"net/http"
-	"os"
+
+	"github.com/CTAG07/Sarracenia/pkg/templating"
+	"github.com/natefinch/atomic"
 )
 
 const (
@@ -47,6 +49,16 @@ func (a *ServerAPI) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/server/restart", a.handleRestart)
 }
 
+// handleHealthCheck provides a simple, unauthenticated endpoint to verify the server is running.
+func (a *ServerAPI) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 // handleConfig gets or updates the main server configuration.
 func (a *ServerAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -79,7 +91,7 @@ func (a *ServerAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to prepare config for saving: %v", err))
 			return
 		}
-		if err = os.WriteFile("config.json", data, 0644); err != nil {
+		if err = atomic.WriteFile("config.json", bytes.NewReader(data)); err != nil {
 			a.logger.Error("Failed to save config.json", "error", err)
 			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save configuration to disk: %v", err))
 			return

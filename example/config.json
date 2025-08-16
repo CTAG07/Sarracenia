@@ -5,7 +5,17 @@
     "log_level": "info",
     "data_dir": "./data",
     "database_path": "./data/sarracenia.db",
-    "dashboard_path": "./data/dashboard.html"
+    "dashboard_tmpl_path": "./data/dashboard/templates/",
+    "dashboard_static_path": "./data/dashboard/static/",
+    "enabled_templates": [
+      "page.tmpl.html"
+    ],
+    "tarpit_config": {
+      "enable_drip_feed": false,
+      "initial_delay_ms": 0,
+      "drip_feed_delay_ms": 500,
+      "drip_feed_chunks": 10
+    }
   },
   "template_config": {
     "markov_enabled": false,

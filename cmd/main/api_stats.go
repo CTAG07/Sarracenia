@@ -62,12 +62,13 @@ func (s *StatsAPI) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/stats/summary", s.handleSummary)
 	mux.HandleFunc("/api/stats/top_ips", s.handleTopIPs)
 	mux.HandleFunc("/api/stats/top_user_agents", s.handleTopUserAgents)
+	mux.HandleFunc("/api/stats/all", s.handleResetAll)
 }
 
 // LogAndGetMetrics is the core function called by the tarpit handler.
 // It logs the request and returns up-to-date metrics for it in a single transaction.
 func (s *StatsAPI) LogAndGetMetrics(r *http.Request) (*RequestMetrics, error) {
-	ip := r.RemoteAddr
+	ip := getClientIP(r)
 	ua := r.UserAgent()
 	now := time.Now()
 
@@ -199,4 +200,47 @@ func (s *StatsAPI) handleTopUserAgents(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	respondWithJSON(w, http.StatusOK, results)
+}
+
+// handleResetAll clears all statistics from the database.
+func (s *StatsAPI) handleResetAll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		w.Header().Set("Allow", "DELETE")
+		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	if !hasScope(r, "server:control") {
+		respondWithError(w, http.StatusForbidden, "Forbidden: requires 'server:control' scope")
+		return
+	}
+
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		s.logger.Error("Failed to begin transaction for stats reset", "error", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not start database transaction")
+		return
+	}
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
+
+	if _, err = tx.ExecContext(r.Context(), "DELETE FROM stats_ip"); err != nil {
+		s.logger.Error("Failed to delete from stats_ip", "error", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to reset IP statistics")
+		return
+	}
+	if _, err = tx.ExecContext(r.Context(), "DELETE FROM stats_user_agent"); err != nil {
+		s.logger.Error("Failed to delete from stats_user_agent", "error", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to reset User Agent statistics")
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		s.logger.Error("Failed to commit transaction for stats reset", "error", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to commit changes to database")
+		return
+	}
+
+	s.logger.Warn("All statistics have been reset via API.")
+	w.WriteHeader(http.StatusNoContent)
 }

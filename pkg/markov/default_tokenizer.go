@@ -11,10 +11,12 @@ import (
 // and identifies sentence-ending punctuation as End-Of-Chain (EOC) tokens.
 // Its behavior can be customized with functional options.
 type DefaultTokenizer struct {
-	separator      string
-	eosReplacement string
-	splitRegex     *regexp.Regexp
-	eosRegex       *regexp.Regexp
+	separator         string
+	eoc               string
+	separatorRegex    *regexp.Regexp
+	eocRegex          *regexp.Regexp
+	separatorExcRegex *regexp.Regexp
+	eocExcRegex       *regexp.Regexp
 }
 
 // Option Is a function that configures a DefaultTokenizer.
@@ -28,11 +30,41 @@ func WithSeparator(sep string) Option {
 	}
 }
 
-// WithEOSReplacement Sets the string to use in final output for an EOC token.
+// WithEOC Sets the string to use in final output for an EOC token.
 // Default: "."
-func WithEOSReplacement(eos string) Option {
+func WithEOC(eoc string) Option {
 	return func(t *DefaultTokenizer) {
-		t.eosReplacement = eos
+		t.eoc = eoc
+	}
+}
+
+// WithSeparatorRegex sets the regex string to use when splitting input text.
+// Default: `[\w']+|[.,!?;]`
+func WithSeparatorRegex(splitRegex string) Option {
+	return func(t *DefaultTokenizer) {
+		t.separatorRegex = regexp.MustCompile(splitRegex)
+	}
+}
+
+// WithEOCRegex sets the regex string to use when deciding whether a token is an EOC token or not.
+// Default: `^[.!?]$`
+func WithEOCRegex(eocRegex string) Option {
+	return func(t *DefaultTokenizer) {
+		t.eocRegex = regexp.MustCompile(eocRegex)
+	}
+}
+
+// WithSeparatorExcRegex sets the regex string to use when deciding whether to add a separator before a token.
+func WithSeparatorExcRegex(splitExcRegex string) Option {
+	return func(t *DefaultTokenizer) {
+		t.separatorExcRegex = regexp.MustCompile(splitExcRegex)
+	}
+}
+
+// WithEOCExcRegex sets the regex string to use when deciding whether to add an EOC token after the last token.
+func WithEOCExcRegex(eocRegex string) Option {
+	return func(t *DefaultTokenizer) {
+		t.eocExcRegex = regexp.MustCompile(eocRegex)
 	}
 }
 
@@ -40,13 +72,17 @@ func WithEOSReplacement(eos string) Option {
 // overridden by providing one or more Option functions.
 func NewDefaultTokenizer(opts ...Option) *DefaultTokenizer {
 	t := &DefaultTokenizer{
-		separator:      " ",
-		eosReplacement: ".",
+		separator: " ",
+		eoc:       ".",
 		// This regex finds sequences of word characters (letters, numbers, underscore)
 		// OR single instances of common punctuation.
-		splitRegex: regexp.MustCompile(`[\w']+|[.,!?;]`),
+		separatorRegex: regexp.MustCompile(`[\w']+|[.,!?;]`),
 		// This regex checks if a token is one of the sentence-ending punctuation marks.
-		eosRegex: regexp.MustCompile(`^[.!?]$`),
+		eocRegex: regexp.MustCompile(`^[.!?]$`),
+		// This regex checks for characters that don't get a separator put before them.
+		separatorExcRegex: regexp.MustCompile(`^[.,!?;]`),
+		// This regex checks for characters that don't get an EOC put after them.
+		eocExcRegex: regexp.MustCompile(`^[.,!?;]`),
 	}
 
 	for _, opt := range opts {
@@ -57,13 +93,19 @@ func NewDefaultTokenizer(opts ...Option) *DefaultTokenizer {
 }
 
 // Separator Returns the configured separator string.
-func (t *DefaultTokenizer) Separator() string {
+func (t *DefaultTokenizer) Separator(_, next string) string {
+	if t.separatorExcRegex.MatchString(next) {
+		return ""
+	}
 	return t.separator
 }
 
 // EOC Returns the configured end-of-chain replacement string.
-func (t *DefaultTokenizer) EOC() string {
-	return t.eosReplacement
+func (t *DefaultTokenizer) EOC(last string) string {
+	if t.eocExcRegex.MatchString(last) {
+		return ""
+	}
+	return t.eoc
 }
 
 // NewStream Returns the stream processor.
@@ -71,8 +113,8 @@ func (t *DefaultTokenizer) NewStream(r io.Reader) StreamTokenizer {
 	return &DefaultStreamTokenizer{
 		scanner:    bufio.NewScanner(r),
 		buffer:     []string{},
-		splitRegex: t.splitRegex,
-		eosRegex:   t.eosRegex,
+		splitRegex: t.separatorRegex,
+		eosRegex:   t.eocRegex,
 	}
 }
 

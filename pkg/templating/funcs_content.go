@@ -3,12 +3,13 @@ package templating
 import (
 	"context"
 	"encoding/json"
-	"github.com/CTAG07/Sarracenia/pkg/markov"
 	"html/template"
 	"math/rand/v2"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/CTAG07/Sarracenia/pkg/markov"
 )
 
 const (

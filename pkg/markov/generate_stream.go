@@ -65,9 +65,7 @@ func (g *Generator) GenerateStreamFromStream(ctx context.Context, model ModelInf
 	return g.generateStreamFromChain(ctx, model, initialChain, opts...)
 }
 
-// generateStreamFromChain contains the core logic for streaming generation. It is highly
-// memory-efficient as it only keeps the current prefix (the last model.Order tokens)
-// in memory, rather than the entire generated chain.
+// generateStreamFromChain contains the core logic for streaming generation.
 func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo, initialChain []int, opts ...GenerateOption) (<-chan Token, error) {
 	options := &generateOptions{
 		maxLength:   100,
@@ -98,8 +96,11 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 			seedTokens = initialChain[model.Order:]
 		}
 
+		var lastWord string
+
 		for _, tokenID := range seedTokens {
 			text, err := g.getTokenTextWithCache(ctx, tokenID, tokenCache)
+			lastWord = text
 			if err != nil {
 				g.logger.ErrorContext(ctx, "failed to get seed token text", slog.Int("token_id", tokenID), slog.Any("error", err))
 				return
@@ -141,7 +142,7 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 				// Send a final EOC token if we hit a dead end.
 				select {
 				case <-ctx.Done():
-				case tokenChan <- Token{Text: g.tokenizer.EOC(), EOC: true}:
+				case tokenChan <- Token{Text: g.tokenizer.EOC(lastWord), EOC: true}:
 				}
 				return
 			}
@@ -152,7 +153,7 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 				select {
 				case <-ctx.Done():
 					return
-				case tokenChan <- Token{Text: g.tokenizer.EOC(), EOC: true}:
+				case tokenChan <- Token{Text: g.tokenizer.EOC(lastWord), EOC: true}:
 				}
 				if options.canEndEarly {
 					return
@@ -165,6 +166,7 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 					g.logger.ErrorContext(ctx, "failed to get generated token text", slog.Int("token_id", nextToken), slog.Any("error", err))
 					return
 				}
+				lastWord = text
 				select {
 				case <-ctx.Done():
 					return

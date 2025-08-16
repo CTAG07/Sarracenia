@@ -22,11 +22,12 @@ type Tokenizer interface {
 	// NewStream returns a stateful StreamTokenizer for processing an io.Reader.
 	NewStream(io.Reader) StreamTokenizer
 	// Separator returns the string that should be used to join tokens
-	// when building a final generated string.
-	Separator() string
+	// when building a final generated string, using the previous and current
+	// tokens.
+	Separator(prev, current string) string
 	// EOC returns the string representation for an End-Of-Chain token
-	// in the final generated output.
-	EOC() string
+	// in the final generated output, using the last token in the sequence.
+	EOC(last string) string
 }
 
 // StreamTokenizer is an interface for a stateful tokenizer that processes a

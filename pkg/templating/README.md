@@ -187,9 +187,9 @@ This is the recommended "composition" pattern, which is highly maintainable and 
 // In your main application, assuming 'tm' is an initialized TemplateManager
 // with Markov features enabled and a valid generator instance.
 pageData := map[string]any{
-    "PageTitle": "My Dynamic Page",
-    "Items":     []string{"Alpha", "Beta", "Gamma"},
-    "TextModel": "tech-docs-model", // Specify which model to use for generation.
+"PageTitle": "My Dynamic Page",
+"Items":     []string{"Alpha", "Beta", "Gamma"},
+"TextModel": "tech-docs-model", // Specify which model to use for generation.
 }
 // Execute the page template, passing in the data map.
 err := tm.Execute(&output, "page.tmpl.html", pageData)
@@ -206,15 +206,15 @@ err := tm.Execute(&output, "page.tmpl.html", pageData)
     <title>{{.PageTitle}}</title>
 </head>
 <body>
-    {{/* Include the header partial, passing the data down */}}
-    {{template "_header.part.html" .}}
+{{/* Include the header partial, passing the data down */}}
+{{template "_header.part.html" .}}
 
-    <main>
-        {{/* This is a placeholder for content from the main template */}}
-        {{template "content" .}}
-    </main>
+<main>
+    {{/* This is a placeholder for content from the main template */}}
+    {{template "content" .}}
+</main>
 
-    <footer>...</footer>
+<footer>...</footer>
 </body>
 </html>
 {{end}}
@@ -238,17 +238,17 @@ err := tm.Execute(&output, "page.tmpl.html", pageData)
 {{template "layout.part.html" .}}
 
 {{/*
-  Then, define the content blocks that the layout expects.
-  The "content" block will be injected into the layout's placeholder.
+Then, define the content blocks that the layout expects.
+The "content" block will be injected into the layout's placeholder.
 */}}
 {{define "content"}}
-    <h2>Welcome to the Page</h2>
-    <p>{{markovSentence .TextModel 25}}</p>
-    <ul>
-        {{range .Items}}
-        <li>{{.}}</li>
-        {{end}}
-    </ul>
+<h2>Welcome to the Page</h2>
+<p>{{markovSentence .TextModel 25}}</p>
+<ul>
+    {{range .Items}}
+    <li>{{.}}</li>
+    {{end}}
+</ul>
 {{end}}
 ```
 
@@ -268,7 +268,7 @@ The templates used for the benchmarks are as follows:
 <h1>{{randomWord}}</h1><p>{{randomSentence 5}}</p>
 
 {{/* BenchmarkExecute_Styling */}}
-<div id="{{randomId "pfx" 8}}" class="{{randomClasses 5}}" style="{{randomInlineStyle 5}}"></div>
+<div id="{{randomId " pfx" 8}}" class="{{randomClasses 5}}" style="{{randomInlineStyle 5}}"></div>
 
 {{/* BenchmarkExecute_CPUIntensive */}}
 {{randomSVG "fractal" 10}} {{jsInteractiveContent "div" "secret" 1000}}
@@ -277,7 +277,8 @@ The templates used for the benchmarks are as follows:
 {{nestDivs 15}} {{randomComplexTable 10 10}}
 
 {{/* BenchmarkExecute_DataGeneration */}}
-{{randomForm 10 5}} <script type="application/json">{{randomJSON 4 5 10}}</script>
+{{randomForm 10 5}}
+<script type="application/json">{{randomJSON 4 5 10}}</script>
 
 {{/* BenchmarkExecute_Markov */}}
 <h1>{{markovSentence "test_model" 15}}</h1><p>{{markovParagraphs "test_model" 2 3 5 10 20}}</p>

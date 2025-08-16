@@ -179,6 +179,7 @@ func (g *Generator) ExportModel(ctx context.Context, modelInfo ModelInfo, w io.W
 			placeholders = append(placeholders, "?")
 		}
 		// Grab every token we need with one query
+		//goland:noinspection Annotator
 		query := fmt.Sprintf(`SELECT token_id, token_text FROM markov_vocabulary WHERE token_id IN (%s)`, strings.Join(placeholders, ","))
 		vRows, err := g.db.QueryContext(ctx, query, args...)
 		if err != nil {
@@ -265,8 +266,8 @@ func (g *Generator) ImportModel(ctx context.Context, r io.Reader) error {
 	}
 
 	// Prefixes need to be re-made with the new VocabID's
-	prefixIDMap := make(map[int]int) // old_id -> new_id
-	newPrefixParts := make([]string, 0, imported.Order)
+	prefixIDMap := make(map[int]int)                               // old_id -> new_id
+	newPrefixParts := make([]string, 0, min(imported.Order, 1024)) // 'Reasonable' default max imported model order to make codeQL happy.
 
 	for oldPrefixText, oldPrefixID := range imported.Prefixes {
 		oldTokenIDs := strings.Split(oldPrefixText, " ")

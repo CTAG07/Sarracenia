@@ -4,6 +4,7 @@ go 1.24.5
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.29
+	github.com/natefinch/atomic v1.0.1
 	modernc.org/sqlite v1.38.0
 )
 

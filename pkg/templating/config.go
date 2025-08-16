@@ -10,6 +10,26 @@ type TemplateConfig struct {
 	// the `random` functions.
 	MarkovEnabled bool `json:"markov_enabled"`
 
+	// MarkovSeparator sets the separator to be used by the markov tokenizer. (optional)
+	MarkovSeparator string `json:"markov_separator"`
+
+	// MarkovEoc sets the eoc to be used by the markov tokenizer. (optional)
+	MarkovEoc string `json:"markov_eoc"`
+
+	// MarkovSplitRegex sets the regex to be used by the markov tokenizer for splitting tokens. (optional)
+	MarkovSplitRegex string `json:"markov_split_regex"`
+
+	// MarkovEocRegex sets the regex to be used by the markov tokenizer for detecting EOC tokens. (optional)
+	MarkovEocRegex string `json:"markov_eoc_regex"`
+
+	// MarkovSeparatorExcRegex sets the regex to be used by the markov tokenizer for determining which tokens should
+	// not have a separator put in front of them. (optional)
+	MarkovSeparatorExcRegex string `json:"markov_separator_exc_regex"`
+
+	// MarkovEocExcRegex sets the regex to be used by the markov tokenizer for determining which tokens should not
+	// have an EOC token put after them. (optional)
+	MarkovEocExcRegex string `json:"markov_eoc_exc_regex"`
+
 	// PathWhitelist is a list of URL paths that are considered safe and should not
 	// be used for randomly generated links (e.g., "/api", "/admin"). This prevents
 	// collisions with real application endpoints.
@@ -62,19 +82,25 @@ type TemplateConfig struct {
 // The PathWhitelist is empty by default, assuming that any non-API path will serve tarpit content.
 func DefaultConfig() *TemplateConfig {
 	return &TemplateConfig{
-		MarkovEnabled:    false,
-		PathWhitelist:    []string{},
-		MinSubpaths:      1,
-		MaxSubpaths:      5,
-		MaxJSONDepth:     8,
-		MaxNestDivs:      50,
-		MaxTableRows:     100,
-		MaxTableCols:     50,
-		MaxFormFields:    75,
-		MaxStyleRules:    200,
-		MaxCssVars:       100,
-		MaxSvgElements:   7,
-		MaxJsContentSize: 1048576, // 1MB
-		MaxJsWasteCycles: 1_000_000,
+		MarkovEnabled:           false,
+		MarkovSeparator:         "",
+		MarkovEoc:               "",
+		MarkovSplitRegex:        "",
+		MarkovEocRegex:          "",
+		MarkovSeparatorExcRegex: "",
+		MarkovEocExcRegex:       "",
+		PathWhitelist:           []string{},
+		MinSubpaths:             1,
+		MaxSubpaths:             5,
+		MaxJSONDepth:            8,
+		MaxNestDivs:             50,
+		MaxTableRows:            100,
+		MaxTableCols:            50,
+		MaxFormFields:           75,
+		MaxStyleRules:           200,
+		MaxCssVars:              100,
+		MaxSvgElements:          7,
+		MaxJsContentSize:        1048576, // 1MB
+		MaxJsWasteCycles:        1_000_000,
 	}
 }

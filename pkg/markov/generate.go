@@ -155,21 +155,22 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 	prefix := make([]int, model.Order)
 	generatedCount := 0
 	firstWord := true
+	var lastWord = SOCTokenText
 
 	if len(initialChain) > model.Order { // If we have seed tokens to deal with
 		seedTokens := initialChain[model.Order:]
 		if len(initialChain) > options.maxLength+model.Order {
 			seedTokens = initialChain[model.Order : options.maxLength+model.Order]
 		}
-
 		for _, tokenID := range seedTokens {
 			text, err := g.getTokenTextWithCache(ctx, tokenID, tokenCache)
 			if err != nil {
 				return "", fmt.Errorf("failed to get text for seed token %d: %w", tokenID, err)
 			}
 			if !firstWord {
-				builder.WriteString(g.tokenizer.Separator())
+				builder.WriteString(g.tokenizer.Separator(lastWord, text))
 			}
+			lastWord = text
 			builder.WriteString(text)
 			firstWord = false
 
@@ -205,7 +206,7 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 				slog.Int("generated_length", generatedCount),
 			)
 			// Append EOC token to the output string.
-			builder.WriteString(g.tokenizer.EOC())
+			builder.WriteString(g.tokenizer.EOC(lastWord))
 			break
 		}
 
@@ -214,7 +215,7 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 		if nextToken == EOCTokenID {
 			// Default assumes no separator before EOC,
 			// and that a separator between EOC and a token after is needed
-			builder.WriteString(g.tokenizer.EOC())
+			builder.WriteString(g.tokenizer.EOC(lastWord))
 
 			if options.canEndEarly {
 				terminatedEarly = true
@@ -226,6 +227,7 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 				break
 			}
 
+			lastWord = EOCTokenText
 			clear(prefix)
 		} else {
 			var text string
@@ -234,10 +236,11 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 				return "", fmt.Errorf("failed to get text for generated token %d: %w", nextToken, err)
 			}
 			if !firstWord {
-				builder.WriteString(g.tokenizer.Separator())
+				builder.WriteString(g.tokenizer.Separator(text, lastWord))
 			} else {
 				firstWord = false
 			}
+			lastWord = text
 			builder.WriteString(text)
 
 			prefix = append(prefix[1:], nextToken)
@@ -247,7 +250,7 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 
 	if !terminatedEarly {
 		// Ensure that all returned sentences end with an EOC for standardization purposes.
-		builder.WriteString(g.tokenizer.EOC())
+		builder.WriteString(g.tokenizer.EOC(lastWord))
 		g.logger.DebugContext(ctx, "Generation terminated by reaching maxLength",
 			slog.String("model_name", model.Name),
 			slog.Int("model_id", model.Id),

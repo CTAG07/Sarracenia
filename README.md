@@ -17,10 +17,55 @@ pages, to prevent them from accessing protected content by keeping them in a loo
 
 ## Installation and Usage
 
-There are three primary ways to install and run Sarracenia. After installation, proceed to the **"Initial Setup"**
+There are four primary ways to install and run Sarracenia. After installation, proceed to the **"Initial Setup"**
 section, which is common to all methods.
 
-### 1. From Source (All Platforms)
+### 1. From a Pre-compiled Release (Recommended for most users)
+
+This is the simplest method. It uses the pre-compiled binaries provided with each new version on GitHub.
+
+**Steps:**
+
+1. **Download the Latest Release:**
+    * Go to the [**Sarracenia Releases Page**](https://github.com/CTAG07/Sarracenia/releases/latest).
+    * Find the asset that matches your operating system and architecture (e.g., `sarracenia-linux-amd64`,
+      `sarracenia-windows-amd64.exe`).
+    * Download the binary.
+
+2. **Prepare Initial Data:**
+    * From the same releases page, download the `Source code (zip)` or `Source code (tar.gz)` file.
+    * Extract the archive. You will need the contents of the `example` directory.
+    * Create your application directory and arrange the files as follows:
+
+      ```
+      /your/sarracenia/folder/
+      ├── sarracenia              # The binary you downloaded
+      ├── config.json             # Copied from the extracted 'example' folder
+      └── data/
+          ├── dashboard/          # Copied from 'example/data'
+          │   ├── static/
+          │   └── templates/
+          ├── templates/          # Copied from 'example/data'
+          │   └── ...
+          └── wordlist.txt        # Copied from 'example/data'
+      ```
+
+3. **Run the Application:**
+    * **On Linux or macOS:**
+      ```sh
+      # Make the binary executable
+      chmod +x ./sarracenia
+
+      # Run the application
+      ./sarracenia
+      ```
+    * **On Windows:**
+        * Simply double-click the `sarracenia.exe` file or run it from the command prompt:
+      ```sh
+      .\sarracenia.exe
+      ```
+
+### 2. From Source (All Platforms)
 
 This method is suitable for developers or for platforms where Docker or systemd are not available.
 
@@ -37,16 +82,7 @@ This method is suitable for developers or for platforms where Docker or systemd 
    cd Sarracenia
    ```
 
-2. **Prepare Initial Data:**
-   On the first run, Sarracenia automatically creates a `config.json` file. However, you must manually provide the
-   initial `data` directory which contains the dashboard, templates, and wordlist. Copy the contents of the `example`
-   directory to where you plan to run the application.
-   ```sh
-   # From the repository root, copy the example contents into the current directory.
-   cp -r ./example/. ./
-   ```
-
-3. **Build and Run:**
+2. **Build and Run:**
    ```sh
    # Build the application
    go build -o sarracenia ./cmd/main
@@ -54,76 +90,40 @@ This method is suitable for developers or for platforms where Docker or systemd 
    # Run the application
    ./sarracenia
    ```
-   This will create an executable named `sarracenia` (or `sarracenia.exe` on Windows).
+   On the first run, Sarracenia will automatically create a `config.json` and a `data` directory with the necessary
+   files by copying them from the `example` directory.
 
-### 2. Docker (Recommended for Deployment)
+### 3. Docker (Recommended for Deployment)
 
-This is the recommended method for deployment. Pre-built Docker images are automatically published to the GitHub Container Registry (`ghcr.io`) whenever a new version is released.
+Pre-built Docker images are automatically published to the GitHub Container Registry (`ghcr.io`) with each new release.
 
-#### Running Pre-Built Images
+1. **Create a `docker-compose.yml` file:**
+   ```yaml
+   # docker-compose.yml
+   services:
+     sarracenia:
+       image: ghcr.io/ctag07/sarracenia:latest
+       container_name: sarracenia
+       restart: unless-stopped
+       ports:
+         - "7277:7277" # Tarpit server
+         - "7278:7278" # Dashboard/API
+       volumes:
+         # Persists your database, config, and templates
+         - sarracenia-data:/app/data
 
-This is the fastest and easiest way to run Sarracenia. You do not need to clone the repository.
+   volumes:
+     sarracenia-data:
+   ```
 
-1.  **Choose an Image Variant:**
-    Two variants are available. The `native` variant is recommended for most users.
-    *   **Native (Recommended):** `ghcr.io/ctag07/sarracenia:latest`
-    *   **CGO:** `ghcr.io/ctag07/sarracenia:latest-cgo`
+2. **Start the Service:**
+   ```sh
+   docker compose up -d
+   ```
 
-2.  **Run with `docker-compose.yml`:**
-    Create a `docker-compose.yml` file with the following content.
+### 4. Systemd Service (Linux)
 
-    **For the `native` image:**
-    ```yaml
-    # docker-compose.yml
-    services:
-      sarracenia:
-        image: ghcr.io/ctag07/sarracenia:latest
-        container_name: sarracenia
-        restart: unless-stopped
-        ports:
-          - "7277:7277" # Tarpit server
-          - "7278:7278" # Dashboard/API
-        volumes:
-          # Persists your database, config, and templates
-          - sarracenia-data:/app
-
-    volumes:
-      sarracenia-data:
-    ```
-
-3.  **Start the Service:**
-    In the same directory as your `docker-compose.yml` file, run:
-    ```sh
-    docker compose up -d
-    ```
-
----
-
-#### Building from Source with Docker (for Local Development)
-
-If you have cloned the repository and want to build the image from the source code to test local changes, you can use the provided `docker-compose.yml` file.
-
-1.  **Choose Build Type (Optional):**
-    The `docker-compose.yml` in the repository is configured to build the image. You can set the `BUILD_TYPE` environment variable.
-    *   `native` (Default): Builds a pure Go binary.
-    *   `cgo`: Builds using the CGO-enabled SQLite driver.
-
-2.  **Build and Run with Docker Compose:**
-    From the root of the repository:
-    ```sh
-    # To build and run with the default native driver
-    docker compose up --build
-
-    # To build and run with the CGO driver
-    BUILD_TYPE=cgo docker compose up --build
-    ```
-
-### 3. Systemd Service (Linux)
-
-For Linux servers, an installation script is provided to set up Sarracenia as a systemd service, ensuring it runs
-automatically on boot.
-
-**Steps:**
+For Linux servers, an installation script is provided to set up Sarracenia as a systemd service.
 
 1. **Clone the Repository:**
    ```sh
@@ -132,18 +132,14 @@ automatically on boot.
    ```
 
 2. **Run the Installation Script:**
-   The script will build the binary, create a dedicated system user (`sarracenia`), install the application files to
-   `/opt/sarracenia`, and set up the systemd service.
+   The script builds the binary, creates a dedicated user, and installs the application to `/opt/sarracenia`.
    ```sh
    sudo bash ./scripts/install_systemd.sh
    ```
 
 3. **Manage the Service:**
-   Once installed, you can manage the Sarracenia service using standard `systemctl` commands:
     * Check status: `systemctl status sarracenia.service`
     * View logs: `journalctl -u sarracenia.service -f`
-    * Stop service: `sudo systemctl stop sarracenia.service`
-    * Start service: `sudo systemctl start sarracenia.service`
 
 ## Initial Setup
 
@@ -156,30 +152,140 @@ automatically on boot.
     * Navigate to the **API Keys** page.
     * Create your first key. This key will automatically be assigned the master (`*`) scope, giving it full permissions.
     * **Copy this key immediately.** It will not be shown again.
-    * You will automatically be logged in with the master key. You can now tweak any part of Sarracenia to your liking.
+    * Once created, all API endpoints (including the dashboard) will be secured.
 
-## Components
+## Configuration (`config.json`)
 
-The core components of Sarracenia are split into two standalone, reusable libraries located in the `/pkg` directory.
-They have no specific dependencies on the main Sarracenia application and can be imported into other projects.
+Sarracenia is configured using a `config.json` file in the same directory as the executable.
+
+### `server_config`
+
+| Key                     | Description                                                                                | Default                       |
+|-------------------------|--------------------------------------------------------------------------------------------|-------------------------------|
+| `server_addr`           | Address for the tarpit server to listen on.                                                | `:7277`                       |
+| `api_addr`              | Address for the API and dashboard server.                                                  | `:7278`                       |
+| `log_level`             | Logging level (`debug`, `info`, `warn`, `error`).                                          | `info`                        |
+| `data_dir`              | Path to the data directory.                                                                | `./data`                      |
+| `database_path`         | Path to the SQLite database file.                                                          | `./data/sarracenia.db`        |
+| `dashboard_tmpl_path`   | Path to the dashboard GoHTML template files.                                               | `./data/dashboard/templates/` |
+| `dashboard_static_path` | Path to the dashboard static assets (CSS, JS).                                             | `./data/dashboard/static/`    |
+| `enabled_templates`     | A list of `.tmpl.html` files to use for the tarpit. If empty, a random template is chosen. | `["page.tmpl.html"]`          |
+| `tarpit_config`         | Settings for response delaying (see below).                                                |                               |
+
+**`tarpit_config` object:**
+
+| Key                  | Description                                  | Default |
+|----------------------|----------------------------------------------|---------|
+| `enable_drip_feed`   | If true, sends the response in slow chunks.  | `false` |
+| `initial_delay_ms`   | Time to wait before sending the first byte.  | `0`     |
+| `drip_feed_delay_ms` | Time to wait between sending chunks.         | `500`   |
+| `drip_feed_chunks`   | Number of chunks to split the response into. | `10`    |
+
+### `template_config`
+
+This object configures the templating engine. See the full documentation in [
+`pkg/templating/README.md`](./pkg/templating/README.md).
+
+### `threat_config`
+
+This object configures the threat assessment system, allowing you to control how aggressively the tarpit responds based
+on client behavior.
+
+| Key                  | Description                                                 | Default |
+|----------------------|-------------------------------------------------------------|---------|
+| `base_threat`        | The starting threat score for any request.                  | `0`     |
+| `ip_hit_factor`      | Value added to score for each hit from an IP.               | `1.0`   |
+| `ua_hit_factor`      | Value added to score for each hit from a User Agent.        | `0.5`   |
+| `ip_hit_rate_factor` | Multiplier for hits-per-minute from an IP.                  | `10.0`  |
+| `ua_hit_rate_factor` | Multiplier for hits-per-minute from a User Agent.           | `5.0`   |
+| `max_threat`         | The absolute maximum threat score.                          | `1000`  |
+| `fallback_level`     | The threat stage (0-4) to use if no other threshold is met. | `0`     |
+| `stages`             | Defines the score thresholds for each threat stage.         |         |
+
+## API Reference
+
+All API endpoints are prefixed with `/api` and require an API key sent in the `sarr-auth` header.
+
+### Authentication (`/api/auth`)
+
+| Method   | Endpoint              | Scope         | Description                                                            |
+|----------|-----------------------|---------------|------------------------------------------------------------------------|
+| `GET`    | `/api/auth/me`        | *any*         | Checks the validity of the current key and returns its scopes.         |
+| `GET`    | `/api/auth/keys`      | `auth:manage` | Lists all API keys (without the raw key).                              |
+| `POST`   | `/api/auth/keys`      | `auth:manage` | Creates a new API key. The first key created is always a master key.   |
+| `DELETE` | `/api/auth/keys/{id}` | `auth:manage` | Deletes an API key by its ID. The master key (ID 1) cannot be deleted. |
+
+### Markov Models (`/api/markov`)
+
+| Method   | Endpoint                           | Scope          | Description                                                       |
+|----------|------------------------------------|----------------|-------------------------------------------------------------------|
+| `GET`    | `/api/markov/models`               | `markov:read`  | Lists all available Markov models and their info.                 |
+| `POST`   | `/api/markov/models`               | `markov:write` | Creates a new, empty Markov model.                                |
+| `DELETE` | `/api/markov/models/{name}`        | `markov:write` | Deletes a model and all its data.                                 |
+| `POST`   | `/api/markov/models/{name}/train`  | `markov:write` | Trains a model with a plain text corpus file in the request body. |
+| `POST`   | `/api/markov/models/{name}/prune`  | `markov:write` | Prunes a model's chain data based on a minimum frequency.         |
+| `GET`    | `/api/markov/models/{name}/export` | `markov:read`  | Exports a model as a JSON file.                                   |
+| `POST`   | `/api/markov/import`               | `markov:write` | Imports a model from a JSON file in the request body.             |
+| `POST`   | `/api/markov/vocabulary/prune`     | `markov:write` | Prunes the global vocabulary of rare tokens across all models.    |
+
+### Server Control (`/api/server`)
+
+| Method | Endpoint               | Scope            | Description                                                |
+|--------|------------------------|------------------|------------------------------------------------------------|
+| `GET`  | `/api/health`          | *none*           | Unauthenticated health check endpoint.                     |
+| `GET`  | `/api/server/version`  | `stats:read`     | Returns the application's build version, commit, and date. |
+| `GET`  | `/api/server/config`   | `server:config`  | Retrieves the current `config.json`.                       |
+| `PUT`  | `/api/server/config`   | `server:config`  | Updates and saves the `config.json`.                       |
+| `POST` | `/api/server/restart`  | `server:control` | Initiates a graceful server restart.                       |
+| `POST` | `/api/server/shutdown` | `server:control` | Initiates a graceful server shutdown.                      |
+
+### Statistics (`/api/stats`)
+
+| Method   | Endpoint                     | Scope            | Description                                                   |
+|----------|------------------------------|------------------|---------------------------------------------------------------|
+| `GET`    | `/api/stats/summary`         | `stats:read`     | Gets a high-level summary of total requests, unique IPs, etc. |
+| `GET`    | `/api/stats/top_ips`         | `stats:read`     | Lists the top 100 most frequent IP addresses.                 |
+| `GET`    | `/api/stats/top_user_agents` | `stats:read`     | Lists the top 100 most frequent User Agents.                  |
+| `DELETE` | `/api/stats/all`             | `server:control` | **Deletes all collected statistics.**                         |
+
+### Templates (`/api/templates`)
+
+| Method   | Endpoint                 | Scope             | Description                                                       |
+|----------|--------------------------|-------------------|-------------------------------------------------------------------|
+| `GET`    | `/api/templates`         | `templates:read`  | Lists the names of all loaded template and partial files.         |
+| `GET`    | `/api/templates/{name}`  | `templates:read`  | Gets the raw content of a template file.                          |
+| `PUT`    | `/api/templates/{name}`  | `templates:write` | Updates or creates a template file with the request body content. |
+| `DELETE` | `/api/templates/{name}`  | `templates:write` | Deletes a template file.                                          |
+| `POST`   | `/api/templates/refresh` | `templates:write` | Manually reloads all templates from disk.                         |
+| `POST`   | `/api/templates/test`    | `templates:read`  | Tests template syntax from the request body without saving.       |
+| `GET`    | `/api/templates/preview` | `templates:read`  | Renders a preview of a saved template with a given threat level.  |
+
+### Whitelist (`/api/whitelist`)
+
+| Method   | Endpoint                   | Scope             | Description                               |
+|----------|----------------------------|-------------------|-------------------------------------------|
+| `GET`    | `/api/whitelist/ip`        | `whitelist:read`  | Lists all whitelisted IP addresses.       |
+| `POST`   | `/api/whitelist/ip`        | `whitelist:write` | Adds an IP address to the whitelist.      |
+| `DELETE` | `/api/whitelist/ip`        | `whitelist:write` | Removes an IP address from the whitelist. |
+| `GET`    | `/api/whitelist/useragent` | `whitelist:read`  | Lists all whitelisted User Agents.        |
+| `POST`   | `/api/whitelist/useragent` | `whitelist:write` | Adds a User Agent to the whitelist.       |
+| `DELETE` | `/api/whitelist/useragent` | `whitelist:write` | Removes a User Agent from the whitelist.  |
+
+## Reusable Components
+
+The core components of Sarracenia are standalone, reusable libraries in the `/pkg` directory.
 
 ### `pkg/markov` - Go Markov Library
 
-The core text generation engine for this project is a standalone, high-performance library for training and using Markov
-chain models. It is feature-complete and includes a streaming API, database persistence, and advanced generation
-features.
+A high-performance library for training and using Markov chain models. It is feature-complete and includes a streaming
+API, database persistence, and advanced generation features.
 
 **[➡️ View the full README for the Markov Library](./pkg/markov/README.md)**
 
 ### `pkg/templating` - Dynamic HTML Template Engine
 
-This library is the rendering engine for Sarracenia. It can use the text generated by the Markov library and/or
-randomized text generated from a wordlist.txt, and embed it within complex, randomized HTML structures. It's designed to
-be filesystem-based for easy updates and includes a rich set of template functions to generate everything from
-nonsensical data and styled elements to simple quality of life operators.
-
-Do note that this library has a dependency on the `pkg/markov` library for markov model generation, but the markov
-capabilities can be disabled in the config, and all markov functions will fall back to using random words.
+The rendering engine for Sarracenia. It uses text from the Markov library and/or a wordlist to embed content within
+complex, randomized HTML structures.
 
 **[➡️ View the full README for the Templating Library](./pkg/templating/README.md)**
 

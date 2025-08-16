@@ -258,3 +258,9 @@ func (g *Generator) SetLogger(logger *slog.Logger) {
 		g.logger = logger
 	}
 }
+
+func (g *Generator) SetTokenizer(tokenizer Tokenizer) {
+	if tokenizer != nil {
+		g.tokenizer = tokenizer
+	}
+}
