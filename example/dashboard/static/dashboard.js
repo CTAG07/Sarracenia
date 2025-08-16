@@ -362,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('application-info-list').innerHTML = `
             <li><span class="label">Status</span><span class="value status-indicator">Live</span></li>
             <li><span class="label">Version</span><span class="value">${version.version}</span></li>
-            <li><span class="label">Commit</span><span class="value">${version.commit}</span></li>
+            <li><span class="label">Commit</span><span class="value">${version.commit.substring(0, 7)}</span></li>
             <li><span class="label">Build Date</span><span class="value">${new Date(version.build_date).toLocaleString()}</span></li>
         `;
 
@@ -372,7 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderStatsTable(tableId, data, state) {
         const tbody = document.querySelector(`#${tableId} tbody`);
-        if (!data || data.length === 0) {
+        if (!Array.isArray(data) || data.length === 0) {
             tbody.innerHTML = `<tr class="empty-row"><td colspan="4">No data available.</td></tr>`;
             return;
         }
