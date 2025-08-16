@@ -94,12 +94,14 @@ func run(actionChan chan string) (string, error) {
 		logger.Error("Failed to setup whitelist schema", "error", err)
 	}
 
-	// API server should be fast and protected by reasonably short timeouts.
+	// ReadHeaderTimeout protects against slowloris attacks.
+	// ReadTimeout is disabled (0) to allow for legitimate long-running uploads (e.g., model training).
+	// WriteTimeout is disabled (0) to allow for long-running tasks (also model training)
 	apiHttpServer := &http.Server{
 		Addr:              config.Server.ApiAddr,
-		ReadHeaderTimeout: 15 * time.Second, // ReadHeaderTimeout only times out on the header so large body texts can still be sent for training.
-		WriteTimeout:      15 * time.Second, // Nothing should really take this long, the largest template outputs can maybe be in MB, but hopefully not something that takes 15 seconds to send.
-		IdleTimeout:       60 * time.Second, // Clean up idle keep-alive connections.
+		ReadHeaderTimeout: 20 * time.Second,
+		WriteTimeout:      0,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	// Tarpit server must have a long WriteTimeout to accommodate delays and drip-feeding.
