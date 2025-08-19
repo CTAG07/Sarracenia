@@ -164,6 +164,7 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 				if options.canEndEarly {
 					return
 				}
+				lastWord = eoc
 				clear(prefix) //
 			} else {
 				var text string

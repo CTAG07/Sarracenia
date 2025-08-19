@@ -24,7 +24,7 @@ func TestGenerateStream(t *testing.T) {
 		}
 
 		// The stream might start with "one" or "red".
-		got := strings.Join(tokens, " ")
+		got := strings.Join(tokens, "")
 		isExpected := got == "one fish two fish" || got == "red fish blue fish"
 
 		if !isExpected {

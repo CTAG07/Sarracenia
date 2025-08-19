@@ -205,12 +205,13 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 		}
 
 		if nextToken == EOCTokenID {
+			eoc := g.tokenizer.EOC(lastWord)
 			if !firstWord {
-				builder.WriteString(g.tokenizer.Separator(lastWord, EOCTokenText))
+				builder.WriteString(g.tokenizer.Separator(lastWord, eoc))
 			} else {
 				firstWord = false
 			}
-			builder.WriteString(g.tokenizer.EOC(lastWord))
+			builder.WriteString(eoc)
 
 			if options.canEndEarly {
 				terminatedEarly = true
@@ -228,7 +229,7 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 				break
 			}
 
-			lastWord = EOCTokenText
+			lastWord = eoc
 			clear(prefix)
 		} else {
 			var text string
