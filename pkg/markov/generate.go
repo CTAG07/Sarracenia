@@ -197,29 +197,30 @@ func (g *Generator) generateChain(ctx context.Context, model ModelInfo, initialC
 			return "", fmt.Errorf("failed to get next tokens for prefix '%s': %w", prefixKey, err)
 		}
 
-		if len(choices) == 0 { // Dead end in chain
-			terminatedEarly = true
-			g.logger.DebugContext(ctx, "Generation terminated due to dead-end",
-				slog.String("model_name", model.Name),
-				slog.Int("model_id", model.Id),
-				slog.String("last_prefix", prefixKey),
-				slog.Int("generated_length", generatedCount),
-			)
-			// Append EOC token to the output string.
-			builder.WriteString(g.tokenizer.EOC(lastWord))
-			break
+		var nextToken int
+		if len(choices) > 0 {
+			nextToken = chooseNextToken(choices, totalFreq, options)
+		} else {
+			nextToken = EOCTokenID
 		}
 
-		nextToken := chooseNextToken(choices, totalFreq, options)
-
 		if nextToken == EOCTokenID {
-			// Default assumes no separator before EOC,
-			// and that a separator between EOC and a token after is needed
+			if !firstWord {
+				builder.WriteString(g.tokenizer.Separator(lastWord, EOCTokenText))
+			} else {
+				firstWord = false
+			}
 			builder.WriteString(g.tokenizer.EOC(lastWord))
 
 			if options.canEndEarly {
 				terminatedEarly = true
-				g.logger.DebugContext(ctx, "Generation terminated by EOC token",
+				var reason string
+				if len(choices) > 0 {
+					reason = "by EOC token"
+				} else {
+					reason = "due to dead-end"
+				}
+				g.logger.DebugContext(ctx, "Generation terminated "+reason,
 					slog.String("model_name", model.Name),
 					slog.Int("model_id", model.Id),
 					slog.Int("generated_length", generatedCount),

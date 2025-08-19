@@ -97,6 +97,7 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 		}
 
 		var lastWord string
+		var firstWord = true
 
 		for _, tokenID := range seedTokens {
 			text, err := g.getTokenTextWithCache(ctx, tokenID, tokenCache)
@@ -138,22 +139,27 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 				g.logger.ErrorContext(ctx, "failed to get next tokens for stream", slog.String("prefix", prefixKey), slog.Any("error", err))
 				return
 			}
-			if len(choices) == 0 { // Dead end
-				// Send a final EOC token if we hit a dead end.
-				select {
-				case <-ctx.Done():
-				case tokenChan <- Token{Text: g.tokenizer.EOC(lastWord), EOC: true}:
-				}
-				return
+
+			var nextToken int
+			if len(choices) > 0 {
+				nextToken = chooseNextToken(choices, totalFreq, options)
+			} else {
+				nextToken = EOCTokenID
 			}
 
-			nextToken := chooseNextToken(choices, totalFreq, options)
-
 			if nextToken == EOCTokenID {
+				var separator string
+				eoc := g.tokenizer.EOC(lastWord)
+				if !firstWord {
+					separator = g.tokenizer.Separator(lastWord, eoc)
+				} else {
+					firstWord = false
+					separator = ""
+				}
 				select {
 				case <-ctx.Done():
 					return
-				case tokenChan <- Token{Text: g.tokenizer.EOC(lastWord), EOC: true}:
+				case tokenChan <- Token{Text: separator + eoc, EOC: true}:
 				}
 				if options.canEndEarly {
 					return
@@ -166,11 +172,18 @@ func (g *Generator) generateStreamFromChain(ctx context.Context, model ModelInfo
 					g.logger.ErrorContext(ctx, "failed to get generated token text", slog.Int("token_id", nextToken), slog.Any("error", err))
 					return
 				}
+				var separator string
+				if !firstWord {
+					separator = g.tokenizer.Separator(lastWord, text)
+				} else {
+					firstWord = false
+					separator = ""
+				}
 				lastWord = text
 				select {
 				case <-ctx.Done():
 					return
-				case tokenChan <- Token{Text: text, EOC: false}:
+				case tokenChan <- Token{Text: separator + text, EOC: false}:
 				}
 				// Update the state by shifting the prefix window and adding the new token.
 				prefix = append(prefix[1:], nextToken)
