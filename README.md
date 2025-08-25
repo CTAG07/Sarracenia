@@ -15,6 +15,28 @@ A Go-based anti-scraper tarpit inspired by Nepenthes.
 The goal of Sarracenia is to serve as a defensive wall against web scrapers by generating endless, plausible-looking web
 pages, to prevent them from accessing protected content by keeping them in a loop of fake ones.
 
+---
+
+## Reusable Components
+
+The core components of Sarracenia are standalone, reusable libraries in the `/pkg` directory.
+
+### `pkg/markov` - Go Markov Library
+
+A high-performance library for training and using Markov chain models. It is feature-complete and includes a streaming
+API, database persistence, and advanced generation features.
+
+**[➡️ View the full README for the Markov Library](./pkg/markov/README.md)**
+
+### `pkg/templating` - Dynamic HTML Template Engine
+
+The rendering engine for Sarracenia. It uses text from the Markov library and/or a wordlist to embed content within
+complex, randomized HTML structures.
+
+**[➡️ View the full README for the Templating Library](./pkg/templating/README.md)**
+
+---
+
 ## Installation and Usage
 
 There are four primary ways to install and run Sarracenia. After installation, proceed to the **"Initial Setup"**
@@ -41,10 +63,10 @@ This is the simplest method. It uses the pre-compiled binaries provided with eac
       /your/sarracenia/folder/
       ├── sarracenia              # The binary you downloaded
       ├── config.json             # Copied from the extracted 'example' folder
-      ├── dashboard/
-      │   ├── static/
-      │   └── templates/
       └── data/
+          ├── dashboard/
+          │   ├── static/
+          │   └── templates/
           ├── templates/          # Copied from 'example/data'
           │   └── ...
           └── wordlist.txt        # Copied from 'example/data'
@@ -270,24 +292,6 @@ All API endpoints are prefixed with `/api` and require an API key sent in the `s
 | `GET`    | `/api/whitelist/useragent` | `whitelist:read`  | Lists all whitelisted User Agents.        |
 | `POST`   | `/api/whitelist/useragent` | `whitelist:write` | Adds a User Agent to the whitelist.       |
 | `DELETE` | `/api/whitelist/useragent` | `whitelist:write` | Removes a User Agent from the whitelist.  |
-
-## Reusable Components
-
-The core components of Sarracenia are standalone, reusable libraries in the `/pkg` directory.
-
-### `pkg/markov` - Go Markov Library
-
-A high-performance library for training and using Markov chain models. It is feature-complete and includes a streaming
-API, database persistence, and advanced generation features.
-
-**[➡️ View the full README for the Markov Library](./pkg/markov/README.md)**
-
-### `pkg/templating` - Dynamic HTML Template Engine
-
-The rendering engine for Sarracenia. It uses text from the Markov library and/or a wordlist to embed content within
-complex, randomized HTML structures.
-
-**[➡️ View the full README for the Templating Library](./pkg/templating/README.md)**
 
 ---
 

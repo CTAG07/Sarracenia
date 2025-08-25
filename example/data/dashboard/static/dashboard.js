@@ -98,6 +98,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function triggerDownload(blob, filename) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+
     // --- API Wrapper ---
     async function apiRequest(endpoint, options = {}, button = null) {
         if (!appState.apiKey) {
@@ -266,12 +278,8 @@ document.addEventListener("DOMContentLoaded", () => {
     async function loadStats(button = null) {
         const ipTbody = document.querySelector('#ips-table tbody');
         const agentTbody = document.querySelector('#agents-table tbody');
-        if (!ipTbody.innerHTML) {
-            ipTbody.innerHTML = Array(5).fill('<tr><td colspan="4"><div class="skeleton" style="height: 24px;"></div></td></tr>').join('');
-        }
-        if (!agentTbody.innerHTML) {
-            agentTbody.innerHTML = Array(5).fill('<tr><td colspan="4"><div class="skeleton" style="height: 24px;"></div></td></tr>').join('');
-        }
+        if (!ipTbody.innerHTML) ipTbody.innerHTML = '<tr><td colspan="4"><div class="spinner"></div></td></tr>';
+        if (!agentTbody.innerHTML) agentTbody.innerHTML = '<tr><td colspan="4"><div class="spinner"></div></td></tr>';
 
         try {
             const [summary, ips, agents, version] = await Promise.all([
@@ -280,7 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 apiRequest('/api/stats/top_user_agents'),
                 apiRequest('/api/server/version')
             ]);
-            appState.dataCache.stats = {summary, ips, agents};
+            appState.dataCache.stats = {summary, ips: ips || [], agents: agents || []};
             appState.dataCache.version = version;
             renderStatsPage();
         } catch (error) {
@@ -366,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('application-info-list').innerHTML = `
             <li><span class="label">Status</span><span class="value status-indicator">Live</span></li>
             <li><span class="label">Version</span><span class="value">${version.version}</span></li>
-            <li><span class="label">Commit</span><span class="value">${version.commit}</span></li>
+            <li><span class="label">Commit</span><span class="value">${version.commit.substring(0, 7)}</span></li>
             <li><span class="label">Build Date</span><span class="value">${new Date(version.build_date).toLocaleString()}</span></li>
         `;
 
@@ -376,7 +384,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderStatsTable(tableId, data, state) {
         const tbody = document.querySelector(`#${tableId} tbody`);
-        if (!data) return;
+        if (!Array.isArray(data) || data.length === 0) {
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="4">No data available.</td></tr>`;
+            return;
+        }
 
         const sortedData = [...data].sort((a, b) => {
             if (state.sort.dir === 'none') return 0;
@@ -665,15 +676,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function setupEventListeners() {
+
+
         // --- Global ---
         document.getElementById('logoutBtn').addEventListener('click', logout);
         document.getElementById('menu-toggle').addEventListener('click', () => DOM.body.classList.toggle('nav-open'));
         document.getElementById('backdrop').addEventListener('click', () => DOM.body.classList.remove('nav-open'));
 
+
         // --- Navigation ---
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => navigateTo(e.currentTarget.dataset.target));
         });
+
 
         // --- Stats Page ---
         document.getElementById('refreshStatsBtn').addEventListener('click', (e) => loadStats(e.currentTarget));
@@ -713,7 +728,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
+
         // --- Whitelist Page ---
+        document.getElementById('refreshWhitelistBtn').addEventListener('click', e => loadWhitelist(e.currentTarget));
         document.getElementById('whitelist-tab-nav').addEventListener('click', e => {
             if (!e.target.matches('.tab-btn')) return;
             const type = e.target.dataset.type;
@@ -739,7 +756,18 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // --- Template Page Listeners ---
+        document.getElementById('whitelist-import-file-input').addEventListener('change', handleWhitelistImport);
+        document.querySelectorAll('.import-whitelist-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const type = e.currentTarget.dataset.type;
+                const fileInput = document.getElementById('whitelist-import-file-input');
+                fileInput.dataset.importType = type; // Store the type for the change event
+                fileInput.click();
+            });
+        });
+
+
+        // --- Template Page ---
         document.getElementById('refreshTemplateListBtn').addEventListener('click', e => loadTemplates(e.currentTarget));
         document.getElementById('templateSelector').addEventListener('change', handleTemplateSelection);
 
@@ -756,6 +784,10 @@ document.addEventListener("DOMContentLoaded", () => {
             debouncedPreview(name, threatValue);
         });
 
+        document.getElementById('createTemplateFormInternal').addEventListener('submit', handleCreateTemplate);
+        document.getElementById('templateEditForm').addEventListener('submit', handleSaveTemplate);
+        document.getElementById('deleteTemplateBtn').addEventListener('click', handleDeleteTemplate);
+
         document.getElementById('testTemplateBtn').addEventListener('click', e => {
             const name = document.getElementById('templateSelector').value;
             const content = document.getElementById('templateContent').value;
@@ -763,7 +795,18 @@ document.addEventListener("DOMContentLoaded", () => {
             previewTemplate(name, threat, content, e.currentTarget);
         });
 
-        // --- Markov Page Listeners ---
+        document.getElementById('testNewTemplateBtn').addEventListener('click', e => {
+            const content = document.getElementById('newTemplateContent').value;
+            if (!content) {
+                showToast('Cannot test an empty template.', 'error');
+                return;
+            }
+            const threat = document.getElementById('previewThreat').value;
+            previewTemplate('test.tmpl.html', threat, content, e.currentTarget);
+        });
+
+
+        // --- Markov Page ---
         document.getElementById('refreshModelListBtn').addEventListener('click', e => loadMarkovModels(e.currentTarget));
         document.getElementById('modelSelector').addEventListener('change', handleModelSelection);
         document.getElementById('createModelFormInternal').addEventListener('submit', async e => {
@@ -813,7 +856,58 @@ document.addEventListener("DOMContentLoaded", () => {
             fileInput.value = '';
         });
 
-        // --- Auth Page Listeners ---
+        document.getElementById('pruneModelForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const modelName = document.getElementById('modelSelector').value;
+            const minFreq = document.getElementById('pruneMinFreq').value;
+            await apiRequest(`/api/markov/models/${modelName}/prune`, {
+                method: 'POST',
+                body: JSON.stringify({minFreq: parseInt(minFreq)})
+            }, e.currentTarget.querySelector('button'));
+            showToast(`Pruning complete for "${modelName}".`);
+        });
+
+        document.getElementById('exportModelBtn').addEventListener('click', async e => {
+            const modelName = document.getElementById('modelSelector').value;
+            try {
+                const response = await apiRequest(`/api/markov/models/${modelName}/export`, {}, e.currentTarget);
+                const blob = await response.blob();
+                triggerDownload(blob, `${modelName}.json`);
+            } catch (error) {
+                showToast('Failed to export model.', 'error');
+            }
+        });
+
+        document.getElementById('importModelForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const fileInput = document.getElementById('importModelFile');
+            if (fileInput.files.length === 0) {
+                showToast('Please select a model file to import.', 'error');
+                return;
+            }
+            const file = fileInput.files[0];
+            await apiRequest(`/api/markov/import`, {
+                method: 'POST',
+                body: file,
+                headers: {'Content-Type': 'application/json'}
+            }, e.currentTarget.querySelector('button'));
+            showToast(`Model import started.`);
+            fileInput.value = '';
+            await loadMarkovModels(); // Refresh list after import
+        });
+
+        document.getElementById('pruneVocabForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const minFreq = document.getElementById('pruneVocabMinFreq').value;
+            await apiRequest(`/api/markov/vocabulary/prune`, {
+                method: 'POST',
+                body: JSON.stringify({minFreq: parseInt(minFreq)})
+            }, e.currentTarget.querySelector('button'));
+            showToast(`Global vocabulary pruning complete.`);
+        });
+
+
+        // --- Auth Page ---
         document.getElementById('refreshKeysListBtn').addEventListener('click', e => loadApiKeys(e.currentTarget));
         document.getElementById('createKeyForm').addEventListener('submit', async e => {
             e.preventDefault();
@@ -841,10 +935,20 @@ document.addEventListener("DOMContentLoaded", () => {
             document.querySelectorAll('#scopes-container input[type="checkbox"]:not(:disabled):not(#scope-\\*').forEach(cb => cb.checked = true);
         });
         document.getElementById('deselectAllScopes').addEventListener('click', () => {
-            document.querySelectorAll('#scopes-container input[type="checkbox"]:not(:disabled):not(#scope-\*):checked').forEach(cb => cb.checked = false);
+            document.querySelectorAll('#scopes-container input[type="checkbox"]:not(:disabled):not(#scope-\\*):checked').forEach(cb => cb.checked = false);
         });
 
-        // --- Config Page Listeners ---
+        document.getElementById('copyKeyBtn').addEventListener('click', e => {
+            const input = document.getElementById('newKeyValue');
+            navigator.clipboard.writeText(input.value).then(() => {
+                showToast('Copied to clipboard!');
+            }).catch(() => {
+                showToast('Failed to copy.', 'error');
+            });
+        });
+
+
+        // --- Config Page ---
         document.getElementById('configEditorToggleBtn').addEventListener('click', (e) => {
             const simpleView = document.getElementById('simple-config-editor-view');
             const rawView = document.getElementById('raw-config-editor-view');
@@ -871,6 +975,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         document.getElementById('updateSimpleConfigForm').addEventListener('submit', handleUpdateSimpleConfig);
+
+        document.getElementById('updateRawConfigForm').addEventListener('submit', handleUpdateRawConfig);
+
         document.getElementById('appConfigText').addEventListener('input', e => {
             const button = document.getElementById('updateConfigBtn');
             try {
@@ -885,19 +992,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         // --- Application Page Listeners ---
-        document.getElementById('restartBtn').addEventListener('click', async e => {
-            if (confirm('Are you sure you want to restart the server?')) {
-                await apiRequest('/api/server/restart', {method: 'POST'}, e.currentTarget);
-                showToast('Restart command sent. The page will now reload.');
-                setTimeout(() => window.location.reload(), 2000);
-            }
-        });
-        document.getElementById('shutdownBtn').addEventListener('click', async e => {
-            if (confirm('This will shut down the server. You will need to restart it manually. Are you sure?')) {
-                await apiRequest('/api/server/shutdown', {method: 'POST'}, e.currentTarget);
-                showToast('Shutdown command sent.');
-            }
-        });
+        document.getElementById('restartBtn').addEventListener('click', handleRestart);
+        document.getElementById('shutdownBtn').addEventListener('click', handleShutdown);
+        document.getElementById('resetStatsBtn').addEventListener('click', handleResetStats);
 
         document.querySelectorAll('.theme-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -905,6 +1002,28 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
+    }
+
+    async function handleRestart(e) {
+        if (confirm('Are you sure you want to restart the server?')) {
+            await apiRequest('/api/server/restart', {method: 'POST'}, e.currentTarget);
+            showToast('Restart command sent. The page will now reload.');
+            setTimeout(() => window.location.reload(), 2000);
+        }
+    }
+
+    async function handleShutdown(e) {
+        if (confirm('This will shut down the server. You will need to restart it manually. Are you sure?')) {
+            await apiRequest('/api/server/shutdown', {method: 'POST'}, e.currentTarget);
+            showToast('Shutdown command sent.');
+        }
+    }
+
+    async function handleResetStats(e) {
+        if (confirm('Are you sure you want to permanently delete all collected statistics? This action cannot be undone.')) {
+            await apiRequest('/api/stats/all', {method: 'DELETE'}, e.currentTarget);
+            showToast('All statistics have been reset.', 'success');
+        }
     }
 
     async function handleAddWhitelist(e) {
@@ -993,6 +1112,124 @@ document.addEventListener("DOMContentLoaded", () => {
             showToast('Configuration saved successfully.');
         } catch (error) {
             showToast('Failed to save configuration.', 'error');
+        }
+    }
+
+    async function handleSaveTemplate(e) {
+        e.preventDefault();
+        const button = e.currentTarget.querySelector('button[type="submit"]');
+        const name = document.getElementById('templateSelector').value;
+        const content = document.getElementById('templateContent').value;
+
+        if (!name || name === '--new--') {
+            showToast('No template selected to save.', 'error');
+            return;
+        }
+
+        try {
+            await apiRequest(`/api/templates/${name}`, {method: 'PUT', body: content, headers: {'Content-Type': 'text/plain'}}, button);
+            showToast(`Template "${name}" saved successfully.`);
+        } catch (error) {
+            // Error is shown by apiRequest
+        }
+    }
+
+    async function handleCreateTemplate(e) {
+        e.preventDefault();
+        const button = e.currentTarget.querySelector('button[type="submit"]');
+        const baseName = document.getElementById('newTemplateNameInput').value.trim();
+        const extension = document.querySelector('input[name="template-extension"]:checked').value;
+        const content = document.getElementById('newTemplateContent').value;
+
+        if (!baseName) {
+            showToast('Template name cannot be empty.', 'error');
+            return;
+        }
+
+        const fullName = baseName.replace(/\.tmpl\.html$|\.part\.html$/, '') + extension;
+
+        try {
+            await apiRequest(`/api/templates/${fullName}`, {method: 'PUT', body: content, headers: {'Content-Type': 'text/plain'}}, button);
+            showToast(`Template "${fullName}" created successfully.`);
+
+            // Reset form
+            document.getElementById('newTemplateNameInput').value = '';
+            document.getElementById('newTemplateContent').value = '';
+
+            // Refresh list and select the new template
+            appState.uiState.selectedTemplate = fullName;
+            await loadTemplates();
+        } catch (error) {
+            // Error is shown by apiRequest
+        }
+    }
+
+    async function handleDeleteTemplate(e) {
+        const name = document.getElementById('templateSelector').value;
+        if (!name || name === '--new--') {
+            showToast('No template selected to delete.', 'error');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to permanently delete template "${name}"?`)) {
+            try {
+                await apiRequest(`/api/templates/${name}`, {method: 'DELETE'}, e.currentTarget);
+                showToast(`Template "${name}" deleted.`);
+                appState.uiState.selectedTemplate = '';
+                await loadTemplates();
+            } catch (error) {
+                // Error is shown by apiRequest
+            }
+        }
+    }
+
+    async function handleWhitelistImport(e) {
+        const file = e.target.files[0];
+        const type = e.target.dataset.importType;
+        if (!file || !type) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const lines = event.target.result.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            if (lines.length === 0) {
+                showToast('File is empty or contains no valid lines.', 'error');
+                return;
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const line of lines) {
+                try {
+                    await apiRequest(`/api/whitelist/${type}`, {
+                        method: 'POST',
+                        body: JSON.stringify({value: line})
+                    });
+                    successCount++;
+                } catch (error) {
+                    errorCount++;
+                }
+            }
+
+            showToast(`Import complete. Added: ${successCount}, Failed: ${errorCount}.`, errorCount > 0 ? 'error' : 'success');
+            await loadWhitelist(); // Refresh the list
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // Reset file input
+    }
+
+    async function handleUpdateRawConfig(e) {
+        e.preventDefault();
+        const button = e.currentTarget.querySelector('button[type="submit"]');
+        const rawConfig = document.getElementById('appConfigText').value;
+
+        try {
+            const parsedConfig = JSON.parse(rawConfig); // Validate JSON one last time
+            await apiRequest('/api/server/config', {method: 'PUT', body: JSON.stringify(parsedConfig)}, button);
+            appState.dataCache.config = parsedConfig; // Update local cache
+            showToast('Configuration saved successfully.');
+        } catch (error) {
+            showToast('Failed to save configuration. Check if JSON is valid.', 'error');
         }
     }
 
