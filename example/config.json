@@ -4,7 +4,7 @@
     "api_addr": ":7278",
     "log_level": "info",
     "data_dir": "./data",
-    "database_path": "./data/sarracenia.db",
+    "database_path": "./data/sarracenia.db?_journal_mode=WAL",
     "dashboard_tmpl_path": "./data/dashboard/templates/",
     "dashboard_static_path": "./data/dashboard/static/",
     "enabled_templates": [

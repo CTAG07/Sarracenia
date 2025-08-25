@@ -48,7 +48,7 @@ func DefaultServerConfig() *ServerConfig {
 		ApiAddr:             ":7278",
 		LogLevel:            "info",
 		DataDir:             "./data",
-		DatabasePath:        "./data/sarracenia.db",
+		DatabasePath:        "./data/sarracenia.db?_journal_mode=WAL",
 		DashboardTmplPath:   "./data/dashboard/templates/",
 		DashboardStaticPath: "./data/dashboard/static/",
 		EnabledTemplates:    []string{"page.tmpl.html"},

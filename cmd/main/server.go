@@ -141,13 +141,14 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	metrics, err := s.statsAPI.LogAndGetMetrics(r)
+	s.logger.Warn("Failed to log and get metrics, proceeding with default threat assessment", "error", err)
+	metrics = &RequestMetrics{
+		IPAddress: ipAddr,
+		UserAgent: r.UserAgent(),
+		// Everything else default (0)
+	}
 	threatLevel := s.tc.GetThreatLevel(metrics)
 	threatState := s.tc.GetStage(threatLevel)
-	if err != nil {
-		s.logger.Error("Failed to get stats / Threat", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 	var templateName string
 	if len(s.config.Server.EnabledTemplates) > 0 {
 		templateName = s.config.Server.EnabledTemplates[rand.Intn(len(s.config.Server.EnabledTemplates))]

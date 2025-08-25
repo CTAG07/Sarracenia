@@ -852,7 +852,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: file,
                 headers: {'Content-Type': 'text/plain'}
             }, e.currentTarget.querySelector('button'));
-            showToast(`Training complete for "${modelName}".`);
+            showToast(`File accepted for model "${modelName}". This will block database writes until it is done.`);
             fileInput.value = '';
         });
 

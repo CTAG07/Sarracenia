@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/CTAG07/Sarracenia/pkg/templating"
@@ -158,12 +161,22 @@ func (m *MarkovAPI) handleModelByName(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusForbidden, "Forbidden: requires 'markov:write' scope")
 			return
 		}
-
-		if err = m.gen.Train(r.Context(), model, r.Body); err != nil {
-			m.logger.Error("Failed to train model", "name", modelName, "error", err)
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Training failed: %v", err))
+		var tempFile *os.File
+		tempFile, err = os.CreateTemp("", "sarracenia-corpus-*.txt")
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Could not create temp file for training")
 			return
 		}
+		defer func(tempFile *os.File) {
+			_ = tempFile.Close()
+		}(tempFile)
+		_, err = io.Copy(tempFile, r.Body)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Could not write corpus to temp file")
+			return
+		}
+
+		go m.runTrainingJob(modelName, tempFile.Name())
 		w.WriteHeader(http.StatusAccepted)
 
 	case "prune":
@@ -253,4 +266,27 @@ func (m *MarkovAPI) handleVocabPrune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+func (m *MarkovAPI) runTrainingJob(modelName, tempFileName string) {
+	tempFile, err := os.Open(tempFileName)
+	if err != nil {
+		m.logger.Error("Training job failed: could not open corpus file", "error", err)
+		return
+	}
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(tempFileName)
+
+	ctx := context.Background()
+
+	modelInfo, err := m.gen.GetModelInfo(ctx, modelName)
+	if err != nil {
+		m.logger.Error("Training job failed: could not get model info from staging DB", "error", err)
+		return
+	}
+
+	err = m.gen.Train(ctx, modelInfo, tempFile)
+	if err != nil {
+		m.logger.Error("Training job failed: could not train model", "error", err)
+	}
 }
