@@ -170,15 +170,15 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 	}
 	s.setTarpitHeaders(w)
 
-	// If drip feeding is disabled in the config, send the response normally.
-	if !s.config.Server.TarpitConfig.EnableDripFeed || s.config.Server.TarpitConfig.DripFeedChunks <= 0 {
+	// If drip feeding is disabled in the config, or any of the config is invalid, send the response normally.
+	if !s.config.Server.TarpitConfig.EnableDripFeed || s.config.Server.TarpitConfig.DripFeedChunksMax <= 0 || s.config.Server.TarpitConfig.DripFeedDelayMax < 0 || s.config.Server.TarpitConfig.DripFeedChunksMax < 0 {
 		_, _ = buf.WriteTo(w)
 		return
 	}
 
 	// Enforce an initial delay before any data is sent.
-	if s.config.Server.TarpitConfig.InitialDelay > 0 {
-		time.Sleep(s.config.Server.TarpitConfig.InitialDelay * time.Millisecond)
+	if s.config.Server.TarpitConfig.InitialDelayMax > 0 {
+		time.Sleep(time.Duration(randRangeMinZero(s.config.Server.TarpitConfig.InitialDelayMin, s.config.Server.TarpitConfig.InitialDelayMax)) * time.Millisecond)
 	}
 
 	// Assert that the ResponseWriter supports flushing.
@@ -191,10 +191,11 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 
 	responseBytes := buf.Bytes()
 	totalSize := len(responseBytes)
-	chunkSize := totalSize / s.config.Server.TarpitConfig.DripFeedChunks
+	chunks := randRangeMinZero(s.config.Server.TarpitConfig.DripFeedChunksMin, s.config.Server.TarpitConfig.DripFeedChunksMax)
+	chunkSize := totalSize / chunks
 
 	// Ensure chunk size is at least 1 to avoid an infinite loop on small responses.
-	if chunkSize == 0 {
+	if chunkSize <= 0 {
 		chunkSize = 1
 	}
 
@@ -216,9 +217,17 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 
 		// Wait before sending the next chunk, but not after the last one.
 		if end < totalSize {
-			time.Sleep(s.config.Server.TarpitConfig.DripFeedDelay * time.Millisecond)
+			time.Sleep(time.Duration(randRangeMinZero(s.config.Server.TarpitConfig.DripFeedDelayMin, s.config.Server.TarpitConfig.DripFeedDelayMax)) * time.Millisecond)
 		}
 	}
+}
+
+// I don't want to write all this out twice, I'm sorry.
+func randRangeMinZero(min, max int) int {
+	if min < 0 {
+		min = 0
+	}
+	return rand.Intn(max-min) + min
 }
 
 func (s *Server) setTarpitHeaders(w http.ResponseWriter) {
@@ -231,11 +240,17 @@ func (s *Server) setTarpitHeaders(w http.ResponseWriter) {
 }
 
 func getClientIP(r *http.Request) string {
+
+	// The X-Real-Ip header contains the forwarded IP in some cases (like from nginx)
+	realIP := r.Header.Get("X-Real-Ip")
+	if realIP != "" {
+		return realIP
+	}
+
 	// The X-Forwarded-For header can contain a comma-separated list of IPs.
 	// The first IP in the list is the original client IP.
 	forwardedFor := r.Header.Get("X-Forwarded-For")
 	if forwardedFor != "" {
-		// Split the header value by comma and return the first IP.
 		ips := strings.Split(forwardedFor, ",")
 		return strings.TrimSpace(ips[0])
 	}
@@ -252,6 +267,6 @@ func getClientIP(r *http.Request) string {
 
 // handleFavicon is a small function to make sure that favicon requests aren't tarpitted, and instead return no
 // content. This prevents double-counting of requests if a favicon is requested.
-func handleFavicon(w http.ResponseWriter, r *http.Request) {
+func handleFavicon(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }

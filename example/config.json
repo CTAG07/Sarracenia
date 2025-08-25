@@ -12,9 +12,12 @@
     ],
     "tarpit_config": {
       "enable_drip_feed": false,
-      "initial_delay_ms": 100,
-      "drip_feed_delay_ms": 500,
-      "drip_feed_chunks": 10
+      "min_initial_delay_ms": 0,
+      "max_initial_delay_ms": 15000,
+      "min_drip_feed_delay_ms": 500,
+      "max_drip_feed_delay_ms": 1000,
+      "min_drip_feed_chunks": 1,
+      "max_drip_feed_chunks": 20
     }
   },
   "template_config": {

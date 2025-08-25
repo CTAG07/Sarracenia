@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/CTAG07/Sarracenia/pkg/templating"
 	"github.com/natefinch/atomic"
@@ -26,10 +25,13 @@ type ServerConfig struct {
 
 // TarpitConfig holds settings for response delaying and drip-feeding.
 type TarpitConfig struct {
-	EnableDripFeed bool          `json:"enable_drip_feed"`
-	InitialDelay   time.Duration `json:"initial_delay_ms"`
-	DripFeedDelay  time.Duration `json:"drip_feed_delay_ms"`
-	DripFeedChunks int           `json:"drip_feed_chunks"`
+	EnableDripFeed    bool `json:"enable_drip_feed"`
+	InitialDelayMin   int  `json:"min_initial_delay_ms"`
+	InitialDelayMax   int  `json:"max_initial_delay_ms"`
+	DripFeedDelayMin  int  `json:"min_drip_feed_delay_ms"`
+	DripFeedDelayMax  int  `json:"max_drip_feed_delay_ms"`
+	DripFeedChunksMin int  `json:"min_drip_feed_chunks"`
+	DripFeedChunksMax int  `json:"max_drip_feed_chunks"`
 }
 
 // Config is the top-level configuration struct that aggregates all other configs.
@@ -51,10 +53,13 @@ func DefaultServerConfig() *ServerConfig {
 		DashboardStaticPath: "./data/dashboard/static/",
 		EnabledTemplates:    []string{"page.tmpl.html"},
 		TarpitConfig: &TarpitConfig{
-			EnableDripFeed: false,
-			InitialDelay:   0,
-			DripFeedDelay:  500,
-			DripFeedChunks: 10,
+			EnableDripFeed:    false,
+			InitialDelayMin:   0,
+			InitialDelayMax:   15000,
+			DripFeedDelayMin:  500,
+			DripFeedDelayMax:  1000,
+			DripFeedChunksMin: 1,
+			DripFeedChunksMax: 20,
 		},
 	}
 }
