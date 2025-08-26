@@ -182,17 +182,17 @@ Sarracenia is configured using a `config.json` file in the same directory as the
 
 ### `server_config`
 
-| Key                     | Description                                                                                | Default                       |
-|-------------------------|--------------------------------------------------------------------------------------------|-------------------------------|
-| `server_addr`           | Address for the tarpit server to listen on.                                                | `:7277`                       |
-| `api_addr`              | Address for the API and dashboard server.                                                  | `:7278`                       |
-| `log_level`             | Logging level (`debug`, `info`, `warn`, `error`).                                          | `info`                        |
-| `data_dir`              | Path to the data directory.                                                                | `./data`                      |
-| `database_path`         | Path to the SQLite database file.                                                          | `./data/sarracenia.db`        |
-| `dashboard_tmpl_path`   | Path to the dashboard GoHTML template files.                                               | `./data/dashboard/templates/` |
-| `dashboard_static_path` | Path to the dashboard static assets (CSS, JS).                                             | `./data/dashboard/static/`    |
-| `enabled_templates`     | A list of `.tmpl.html` files to use for the tarpit. If empty, a random template is chosen. | `["page.tmpl.html"]`          |
-| `tarpit_config`         | Settings for response delaying (see below).                                                |                               |
+| Key                     | Description                                                                                | Default                                  |
+|-------------------------|--------------------------------------------------------------------------------------------|------------------------------------------|
+| `server_addr`           | Address for the tarpit server to listen on.                                                | `:7277`                                  |
+| `api_addr`              | Address for the API and dashboard server.                                                  | `:7278`                                  |
+| `log_level`             | Logging level (`debug`, `info`, `warn`, `error`).                                          | `info`                                   |
+| `data_dir`              | Path to the data directory.                                                                | `./data`                                 |
+| `database_path`         | Path to the SQLite database file.                                                          | `./data/sarracenia.db?_journal_mode=WAL` |
+| `dashboard_tmpl_path`   | Path to the dashboard GoHTML template files.                                               | `./data/dashboard/templates/`            |
+| `dashboard_static_path` | Path to the dashboard static assets (CSS, JS).                                             | `./data/dashboard/static/`               |
+| `enabled_templates`     | A list of `.tmpl.html` files to use for the tarpit. If empty, a random template is chosen. | `["page.tmpl.html"]`                     |
+| `tarpit_config`         | Settings for response delaying (see below).                                                |                                          |
 
 **`tarpit_config` object:**
 
@@ -239,17 +239,18 @@ All API endpoints are prefixed with `/api` and require an API key sent in the `s
 
 ### Markov Models (`/api/markov`)
 
-| Method   | Endpoint                           | Scope          | Description                                                                                            |
-|----------|------------------------------------|----------------|--------------------------------------------------------------------------------------------------------|
-| `GET`    | `/api/markov/models`               | `markov:read`  | Lists all available Markov models and their info.                                                      |
-| `POST`   | `/api/markov/models`               | `markov:write` | Creates a new, empty Markov model.                                                                     |
-| `DELETE` | `/api/markov/models/{name}`        | `markov:write` | Deletes a model and all its data.                                                                      |
-| `POST`   | `/api/markov/models/{name}/train`  | `markov:write` | Trains a model with a plain text corpus file in the request body.                                      |
-| `POST`   | `/api/markov/models/{name}/prune`  | `markov:write` | Prunes a model's chain data based on a minimum frequency.                                              |
-| `GET`    | `/api/markov/models/{name}/export` | `markov:read`  | Exports a model as a JSON file.                                                                        |
-| `POST`   | `/api/markov/import`               | `markov:write` | Imports a model from a JSON file in the request body.                                                  |
-| `POST`   | `/api/markov/vocabulary/prune`     | `markov:write` | Prunes the global vocabulary of rare tokens across all models.                                         |
-| `GET`    | `/api/markov/training/status`      | `markov:read`  | Gives a json response indicating whether training is occurring, and if so, what model is being trained |
+| Method   | Endpoint                             | Scope          | Description                                                                                            |
+|----------|--------------------------------------|----------------|--------------------------------------------------------------------------------------------------------|
+| `GET`    | `/api/markov/models`                 | `markov:read`  | Lists all available Markov models and their info.                                                      |
+| `POST`   | `/api/markov/models`                 | `markov:write` | Creates a new, empty Markov model.                                                                     |
+| `DELETE` | `/api/markov/models/{name}`          | `markov:write` | Deletes a model and all its data.                                                                      |
+| `POST`   | `/api/markov/models/{name}/train`    | `markov:write` | Trains a model with a plain text corpus file in the request body.                                      |
+| `POST`   | `/api/markov/models/{name}/prune`    | `markov:write` | Prunes a model's chain data based on a minimum frequency.                                              |
+| `GET`    | `/api/markov/models/{name}/export`   | `markov:read`  | Exports a model as a JSON file.                                                                        |
+| `POST`   | `/api/markov/models/{name}/generate` | `markov:read`  | Generates text from a given markov model with given params                                             |
+| `POST`   | `/api/markov/import`                 | `markov:write` | Imports a model from a JSON file in the request body.                                                  |
+| `POST`   | `/api/markov/vocabulary/prune`       | `markov:write` | Prunes the global vocabulary of rare tokens across all models.                                         |
+| `GET`    | `/api/markov/training/status`        | `markov:read`  | Gives a json response indicating whether training is occurring, and if so, what model is being trained |
 
 ### Server Control (`/api/server`)
 
