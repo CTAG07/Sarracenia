@@ -141,11 +141,13 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	metrics, err := s.statsAPI.LogAndGetMetrics(r)
-	s.logger.Warn("Failed to log and get metrics, proceeding with default threat assessment", "error", err)
-	metrics = &RequestMetrics{
-		IPAddress: ipAddr,
-		UserAgent: r.UserAgent(),
-		// Everything else default (0)
+	if err != nil {
+		s.logger.Warn("Failed to log and get metrics, proceeding with default threat assessment", "error", err)
+		metrics = &RequestMetrics{
+			IPAddress: ipAddr,
+			UserAgent: r.UserAgent(),
+			// Everything else default (0)
+		}
 	}
 	threatLevel := s.tc.GetThreatLevel(metrics)
 	threatState := s.tc.GetStage(threatLevel)
@@ -241,23 +243,21 @@ func (s *Server) setTarpitHeaders(w http.ResponseWriter) {
 }
 
 func getClientIP(r *http.Request) string {
-
-	// The X-Real-Ip header contains the forwarded IP in some cases (like from nginx)
-	realIP := r.Header.Get("X-Real-Ip")
+	// The X-Real-Ip header is often set by proxies and is a reliable source.
+	realIP := r.Header.Get("X-Real-IP")
 	if realIP != "" {
 		return realIP
 	}
 
 	// The X-Forwarded-For header can contain a comma-separated list of IPs.
-	// The first IP in the list is the original client IP.
+	// The rightmost IP is the one most recently added by a proxy and is the most trustworthy.
 	forwardedFor := r.Header.Get("X-Forwarded-For")
 	if forwardedFor != "" {
 		ips := strings.Split(forwardedFor, ",")
-		return strings.TrimSpace(ips[0])
+		return strings.TrimSpace(ips[len(ips)-1])
 	}
 
-	// If the header is not present, fall back to the remote address.
-	// This handles direct connections not coming through a proxy.
+	// If no headers are present, fall back to the remote address.
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		// If splitting fails (e.g., no port), return the address as is.

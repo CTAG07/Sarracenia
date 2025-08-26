@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         timers: {
             statsRefresh: null,
+            trainingStatusPoll: null,
         }
     };
 
@@ -124,11 +125,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 'sarr-auth': appState.apiKey,
             },
         };
-        // Do not set Content-Type for FormData, browser does it better
         if (!(options.body instanceof FormData)) {
             defaultOptions.headers['Content-Type'] = 'application/json';
         }
-
 
         const mergedOptions = {...defaultOptions, ...options};
         mergedOptions.headers = {...defaultOptions.headers, ...options.headers};
@@ -145,14 +144,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (response.status === 204 || response.status === 202) {
-                return null; // No content to parse
+                return null;
             }
-            // Handle binary file downloads (e.g., model export)
+
+            // Check for file downloads FIRST, before attempting to parse JSON.
+            const contentDisposition = response.headers.get("content-disposition");
+            if (contentDisposition && contentDisposition.includes("attachment")) {
+                return response; // It's a file download, return the raw response for the caller to handle.
+            }
+
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
                 return response.json();
             }
-            return response; // For text, blob, etc.
+            return response;
 
         } catch (error) {
             showToast(error.message, 'error');
@@ -226,6 +231,10 @@ document.addEventListener("DOMContentLoaded", () => {
             clearInterval(appState.timers.statsRefresh);
             appState.timers.statsRefresh = null;
         }
+        if (appState.timers.trainingStatusPoll) {
+            clearInterval(appState.timers.trainingStatusPoll);
+            appState.timers.trainingStatusPoll = null;
+        }
 
         // Update nav button styles
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.target === pageId));
@@ -262,6 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 break;
             case 'markov-content':
                 if (!appState.dataCache.models) loadMarkovModels();
+                pollTrainingStatus();
                 break;
             case 'auth-content':
                 if (!appState.dataCache.keys) loadApiKeys();
@@ -335,6 +345,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const models = await apiRequest('/api/markov/models', {}, button);
             appState.dataCache.models = models;
             renderMarkovPage();
+            await pollTrainingStatus();
         } catch (error) {
             selector.innerHTML = '<option>Failed to load models</option>';
         }
@@ -361,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
             // Handle config load error
         }
     }
-
 
     function renderStatsPage() {
         const {stats, version} = appState.dataCache;
@@ -476,6 +486,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         selector.value = appState.uiState.selectedModel || '';
         handleModelSelection();
+    }
+
+    function renderTrainingStatus(status) {
+        const indicator = document.getElementById('training-status-indicator');
+        if (!indicator) return;
+
+        if (status && status.is_training) {
+            indicator.querySelector('span').textContent = `Training ${status.model_name}...`;
+            indicator.classList.remove('status-indicator-hidden');
+        } else {
+            indicator.classList.add('status-indicator-hidden');
+        }
     }
 
     function renderApiKeysPage() {
@@ -597,7 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
             contentArea.value = "Loading...";
             const content = await apiRequest(`/api/templates/${selected}`, {headers: {'Content-Type': 'text/plain'}}, null).then(res => res.text());
             contentArea.value = content;
-            previewTemplate(selected, document.getElementById('previewThreat').value);
+            await previewTemplate(selected, document.getElementById('previewThreat').value);
         }
     }
 
@@ -852,7 +874,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: file,
                 headers: {'Content-Type': 'text/plain'}
             }, e.currentTarget.querySelector('button'));
-            showToast(`File accepted for model "${modelName}". This will block database writes until it is done.`);
+            showToast(`Training job for "${modelName}" has started. Status will update automatically.`);
+            startPolling();
             fileInput.value = '';
         });
 
@@ -1233,6 +1256,31 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function startPolling() {
+        if (appState.timers.trainingStatusPoll) return;
+        pollTrainingStatus();
+        appState.timers.trainingStatusPoll = setInterval(pollTrainingStatus, 5000);
+    }
+
+    function stopPolling() {
+        if (appState.timers.trainingStatusPoll) {
+            clearInterval(appState.timers.trainingStatusPoll);
+            appState.timers.trainingStatusPoll = null;
+        }
+    }
+
+    async function pollTrainingStatus() {
+        try {
+            const status = await apiRequest('/api/markov/training/status', {}, null);
+            renderTrainingStatus(status);
+            if (status && !status.is_training) {
+                stopPolling();
+            }
+        } catch (error) {
+            renderTrainingStatus({ is_training: false });
+            stopPolling();
+        }
+    }
 
     // --- Initial Load ---
     DOM.loginForm.addEventListener('submit', e => {

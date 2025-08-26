@@ -1,11 +1,18 @@
-{{/* First, specify which layout this page extends */}}
-{{template "layout.part.html" .}}
-
-{{/*
-Then, define the content blocks that the layout expects.
-The "content" block will be injected into the layout's placeholder.
-*/}}
-{{define "content"}}
-<h2>Welcome to the Page</h2>
-<p>{{randomSentence 25}}</p>
-{{end}}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{randomSentence 5}}</title>
+</head>
+<body>
+<h3>{{randomSentence 8}}</h3>
+<p>
+    {{randomParagraphs 1 2 4 10 20}}
+</p>
+<ul>
+    {{range repeat 5}}
+    <li><a href="{{randomLink}}">{{randomWord}}</a></li>
+    {{end}}
+</ul>
+<a href="{{randomLink}}">{{randomWord}}</a>
+</body>
+</html>

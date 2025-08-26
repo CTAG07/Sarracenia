@@ -872,3 +872,21 @@ table th.sortable[data-sort-dir="desc"]::after {
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
     animation: skeleton-loading 1.5s infinite;
 }
+
+#training-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-accent);
+    background-color: var(--bg-accent);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--border-radius);
+    margin-inline-start: auto;
+    margin-inline-end: 1rem;
+}
+
+.status-indicator-hidden {
+    display: none !important;
+}

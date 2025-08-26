@@ -115,6 +115,7 @@ func (g *Generator) RemoveModel(ctx context.Context, model ModelInfo) error {
 // ExportModel serializes a given model into a JSON format and writes it to the
 // provided io.Writer. This is useful for backups or for transferring models.
 func (g *Generator) ExportModel(ctx context.Context, modelInfo ModelInfo, w io.Writer) error {
+	const batchSize = 500 // SQLite's default variable limit is 999, so 500 is a safe batch size.
 
 	// Load all chains from the model
 	rows, err := g.db.QueryContext(ctx, "SELECT prefix_id, next_token_id, frequency FROM markov_chains WHERE model_id = ?", modelInfo.Id)
@@ -132,66 +133,106 @@ func (g *Generator) ExportModel(ctx context.Context, modelInfo ModelInfo, w io.W
 
 	for rows.Next() {
 		var chain ExportedChain
-		if err := rows.Scan(&chain.PrefixID, &chain.NextTokenID, &chain.Frequency); err != nil {
+		if err = rows.Scan(&chain.PrefixID, &chain.NextTokenID, &chain.Frequency); err != nil {
 			return err
 		}
 		exportedChains = append(exportedChains, chain)
 		prefixIDs[chain.PrefixID] = struct{}{}
 		tokenIDs[chain.NextTokenID] = struct{}{}
 	}
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return err
 	}
 
 	prefixIDToText := make(map[string]int)
 	if len(prefixIDs) > 0 {
-		args := make([]interface{}, 0, len(prefixIDs))
-		placeholders := make([]string, 0, len(prefixIDs))
+		// Convert map keys to a slice for batching
+		pids := make([]int, 0, len(prefixIDs))
 		for id := range prefixIDs {
-			args = append(args, id)
-			placeholders = append(placeholders, "?")
+			pids = append(pids, id)
 		}
-		// Grab every prefix we need with one query
-		query := fmt.Sprintf(`SELECT prefix_id, prefix_text FROM markov_prefixes WHERE prefix_id IN (%s)`, strings.Join(placeholders, ","))
-		pRows, err := g.db.QueryContext(ctx, query, args...)
-		if err != nil {
-			return err
-		}
-		for pRows.Next() {
-			var id int
-			var text string
-			_ = pRows.Scan(&id, &text)
-			prefixIDToText[text] = id
-			for _, idStr := range strings.Split(text, " ") {
-				tokenID, _ := strconv.Atoi(idStr)
-				tokenIDs[tokenID] = struct{}{}
+
+		for i := 0; i < len(pids); i += batchSize {
+			end := i + batchSize
+			if end > len(pids) {
+				end = len(pids)
+			}
+			batch := pids[i:end]
+
+			args := make([]interface{}, len(batch))
+			for j, id := range batch {
+				args[j] = id
+			}
+
+			query := fmt.Sprintf(`SELECT prefix_id, prefix_text FROM markov_prefixes WHERE prefix_id IN (?%s)`, strings.Repeat(",?", len(batch)-1))
+			var pRows *sql.Rows
+			pRows, err = g.db.QueryContext(ctx, query, args...)
+			if err != nil {
+				return fmt.Errorf("failed to query prefix batch: %w", err)
+			}
+
+			for pRows.Next() {
+				var id int
+				var text string
+				if err = pRows.Scan(&id, &text); err != nil {
+					_ = pRows.Close()
+					return fmt.Errorf("failed to scan prefix row: %w", err)
+				}
+				prefixIDToText[text] = id
+				// Also gather the token IDs that make up this prefix
+				for _, idStr := range strings.Split(text, " ") {
+					tokenID, _ := strconv.Atoi(idStr)
+					tokenIDs[tokenID] = struct{}{}
+				}
+			}
+			_ = pRows.Close()
+			if err = pRows.Err(); err != nil {
+				return fmt.Errorf("error after iterating prefix batch: %w", err)
 			}
 		}
-		_ = pRows.Close()
 	}
 
 	tokenIDToText := make(map[string]int)
 	if len(tokenIDs) > 0 {
-		args := make([]interface{}, 0, len(tokenIDs))
-		placeholders := make([]string, 0, len(tokenIDs))
+		// Convert map keys to a slice for batching
+		tIds := make([]int, 0, len(tokenIDs))
 		for id := range tokenIDs {
-			args = append(args, id)
-			placeholders = append(placeholders, "?")
+			tIds = append(tIds, id)
 		}
-		// Grab every token we need with one query
-		//goland:noinspection Annotator
-		query := fmt.Sprintf(`SELECT token_id, token_text FROM markov_vocabulary WHERE token_id IN (%s)`, strings.Join(placeholders, ","))
-		vRows, err := g.db.QueryContext(ctx, query, args...)
-		if err != nil {
-			return err
+
+		for i := 0; i < len(tIds); i += batchSize {
+			end := i + batchSize
+			if end > len(tIds) {
+				end = len(tIds)
+			}
+			batch := tIds[i:end]
+
+			args := make([]interface{}, len(batch))
+			for j, id := range batch {
+				args[j] = id
+			}
+
+			query := fmt.Sprintf(`SELECT token_id, token_text FROM markov_vocabulary WHERE token_id IN (?%s)`, strings.Repeat(",?", len(batch)-1))
+			var vRows *sql.Rows
+			vRows, err = g.db.QueryContext(ctx, query, args...)
+			if err != nil {
+				return fmt.Errorf("failed to query vocabulary batch: %w", err)
+			}
+
+			for vRows.Next() {
+				var id int
+				var text string
+				if err = vRows.Scan(&id, &text); err != nil {
+					_ = vRows.Close()
+					return fmt.Errorf("failed to scan vocabulary row: %w", err)
+				}
+				tokenIDToText[text] = id
+			}
+			_ = vRows.Close()
+			if err = vRows.Err(); err != nil {
+				return fmt.Errorf("error after iterating vocabulary batch: %w", err)
+			}
 		}
-		for vRows.Next() {
-			var id int
-			var text string
-			_ = vRows.Scan(&id, &text)
-			tokenIDToText[text] = id
-		}
-		_ = vRows.Close()
 	}
 
 	exported := ExportedModel{

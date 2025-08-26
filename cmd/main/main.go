@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -35,6 +36,7 @@ func main() {
 	}()
 
 	for {
+		cleanupOldTempFiles(baseLogger)
 		action, err := run(actionChan)
 		if err != nil {
 			baseLogger.Error("An error occurred during server run, shutting down.", "error", err)
@@ -94,13 +96,11 @@ func run(actionChan chan string) (string, error) {
 		logger.Error("Failed to setup whitelist schema", "error", err)
 	}
 
-	// ReadHeaderTimeout protects against slowloris attacks.
-	// ReadTimeout is disabled (0) to allow for legitimate long-running uploads (e.g., model training).
-	// WriteTimeout is disabled (0) to allow for long-running tasks (also model training)
 	apiHttpServer := &http.Server{
 		Addr:              config.Server.ApiAddr,
 		ReadHeaderTimeout: 20 * time.Second,
-		WriteTimeout:      0,
+		ReadTimeout:       15 * time.Minute,
+		WriteTimeout:      1 * time.Minute,
 		IdleTimeout:       60 * time.Second,
 	}
 
@@ -155,4 +155,22 @@ func run(actionChan chan string) (string, error) {
 	}
 
 	return action, nil
+}
+
+// cleanupOldTempFiles removes any orphaned temporary files from previous runs.
+func cleanupOldTempFiles(logger *slog.Logger) {
+	tempDir := filepath.Join("./data", "tmp")
+	files, err := filepath.Glob(filepath.Join(tempDir, "*"))
+	if err != nil {
+		logger.Error("Failed to search for old temp files", "error", err)
+		return
+	}
+	if len(files) > 0 {
+		logger.Info("Cleaning up old temp files", "count", len(files))
+		for _, f := range files {
+			if err = os.Remove(f); err != nil {
+				logger.Warn("Failed to remove old temp file", "file", f, "error", err)
+			}
+		}
+	}
 }

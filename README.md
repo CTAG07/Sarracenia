@@ -239,16 +239,17 @@ All API endpoints are prefixed with `/api` and require an API key sent in the `s
 
 ### Markov Models (`/api/markov`)
 
-| Method   | Endpoint                           | Scope          | Description                                                       |
-|----------|------------------------------------|----------------|-------------------------------------------------------------------|
-| `GET`    | `/api/markov/models`               | `markov:read`  | Lists all available Markov models and their info.                 |
-| `POST`   | `/api/markov/models`               | `markov:write` | Creates a new, empty Markov model.                                |
-| `DELETE` | `/api/markov/models/{name}`        | `markov:write` | Deletes a model and all its data.                                 |
-| `POST`   | `/api/markov/models/{name}/train`  | `markov:write` | Trains a model with a plain text corpus file in the request body. |
-| `POST`   | `/api/markov/models/{name}/prune`  | `markov:write` | Prunes a model's chain data based on a minimum frequency.         |
-| `GET`    | `/api/markov/models/{name}/export` | `markov:read`  | Exports a model as a JSON file.                                   |
-| `POST`   | `/api/markov/import`               | `markov:write` | Imports a model from a JSON file in the request body.             |
-| `POST`   | `/api/markov/vocabulary/prune`     | `markov:write` | Prunes the global vocabulary of rare tokens across all models.    |
+| Method   | Endpoint                           | Scope          | Description                                                                                            |
+|----------|------------------------------------|----------------|--------------------------------------------------------------------------------------------------------|
+| `GET`    | `/api/markov/models`               | `markov:read`  | Lists all available Markov models and their info.                                                      |
+| `POST`   | `/api/markov/models`               | `markov:write` | Creates a new, empty Markov model.                                                                     |
+| `DELETE` | `/api/markov/models/{name}`        | `markov:write` | Deletes a model and all its data.                                                                      |
+| `POST`   | `/api/markov/models/{name}/train`  | `markov:write` | Trains a model with a plain text corpus file in the request body.                                      |
+| `POST`   | `/api/markov/models/{name}/prune`  | `markov:write` | Prunes a model's chain data based on a minimum frequency.                                              |
+| `GET`    | `/api/markov/models/{name}/export` | `markov:read`  | Exports a model as a JSON file.                                                                        |
+| `POST`   | `/api/markov/import`               | `markov:write` | Imports a model from a JSON file in the request body.                                                  |
+| `POST`   | `/api/markov/vocabulary/prune`     | `markov:write` | Prunes the global vocabulary of rare tokens across all models.                                         |
+| `GET`    | `/api/markov/training/status`      | `markov:read`  | Gives a json response indicating whether training is occurring, and if so, what model is being trained |
 
 ### Server Control (`/api/server`)
 

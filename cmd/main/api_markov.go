@@ -10,7 +10,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/CTAG07/Sarracenia/pkg/templating"
 
@@ -19,17 +21,25 @@ import (
 
 // MarkovAPI holds the dependencies for the Markov model API handlers.
 type MarkovAPI struct {
-	gen    *markov.Generator
-	tm     *templating.TemplateManager
-	logger *slog.Logger
+	gen                    *markov.Generator
+	tm                     *templating.TemplateManager
+	logger                 *slog.Logger
+	trainingMux            sync.Mutex
+	infoMux                sync.RWMutex
+	isTraining             bool
+	currentlyTrainingModel string
 }
 
 // NewMarkovAPI creates a new instance of the MarkovAPI.
 func NewMarkovAPI(gen *markov.Generator, tm *templating.TemplateManager, logger *slog.Logger) *MarkovAPI {
 	return &MarkovAPI{
-		gen:    gen,
-		tm:     tm,
-		logger: logger,
+		gen:                    gen,
+		tm:                     tm,
+		logger:                 logger,
+		trainingMux:            sync.Mutex{},
+		infoMux:                sync.RWMutex{},
+		isTraining:             false,
+		currentlyTrainingModel: "",
 	}
 }
 
@@ -39,6 +49,7 @@ func (m *MarkovAPI) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/markov/models/", m.handleModelByName)
 	mux.HandleFunc("/api/markov/import", m.handleImport)
 	mux.HandleFunc("/api/markov/vocabulary/prune", m.handleVocabPrune)
+	mux.HandleFunc("/api/markov/training/status", m.handleTrainingStatus)
 }
 
 type CreateModelRequest struct {
@@ -161,20 +172,31 @@ func (m *MarkovAPI) handleModelByName(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusForbidden, "Forbidden: requires 'markov:write' scope")
 			return
 		}
-		var tempFile *os.File
-		tempFile, err = os.CreateTemp("", "sarracenia-corpus-*.txt")
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Could not create temp file for training")
+
+		tempDir := filepath.Join("./data", "tmp")
+		if err = os.MkdirAll(tempDir, 0755); err != nil {
+			m.logger.Error("Could not create temp directory for training", "error", err)
+			respondWithError(w, http.StatusInternalServerError, "Internal server error: cannot create temp dir")
 			return
 		}
-		defer func(tempFile *os.File) {
-			_ = tempFile.Close()
-		}(tempFile)
+
+		var tempFile *os.File
+		tempFile, err = os.CreateTemp(tempDir, "sarracenia-corpus-*.txt")
+		if err != nil {
+			m.logger.Error("Could not create temp file for training", "error", err)
+			respondWithError(w, http.StatusInternalServerError, "Internal server error: cannot create temp file")
+			return
+		}
+
 		_, err = io.Copy(tempFile, r.Body)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Could not write corpus to temp file")
+			_ = tempFile.Close()
+			_ = os.Remove(tempFile.Name())
+			m.logger.Error("Could not write corpus to temp file", "error", err)
+			respondWithError(w, http.StatusInternalServerError, "Internal server error: failed to write corpus")
 			return
 		}
+		_ = tempFile.Close()
 
 		go m.runTrainingJob(modelName, tempFile.Name())
 		w.WriteHeader(http.StatusAccepted)
@@ -267,26 +289,72 @@ func (m *MarkovAPI) handleVocabPrune(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-func (m *MarkovAPI) runTrainingJob(modelName, tempFileName string) {
-	tempFile, err := os.Open(tempFileName)
-	if err != nil {
-		m.logger.Error("Training job failed: could not open corpus file", "error", err)
+
+// handleTrainingStatus checks if a model training job is currently in progress.
+func (m *MarkovAPI) handleTrainingStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	defer func(name string) {
-		_ = os.Remove(name)
-	}(tempFileName)
+	if !hasScope(r, "markov:read") {
+		respondWithError(w, http.StatusForbidden, "Forbidden: requires 'markov:read' scope")
+		return
+	}
+
+	m.infoMux.RLock()
+	defer m.infoMux.RUnlock()
+
+	response := map[string]interface{}{
+		"is_training": m.isTraining,
+		"model_name":  m.currentlyTrainingModel,
+	}
+	respondWithJSON(w, http.StatusOK, response)
+}
+
+func (m *MarkovAPI) runTrainingJob(modelName, tempFileName string) {
+
+	// Get training lock (only train one model at once)
+	m.trainingMux.Lock()
+	defer m.trainingMux.Unlock()
+
+	m.infoMux.Lock()
+	m.currentlyTrainingModel = modelName
+	m.isTraining = true
+	m.infoMux.Unlock()
+
+	defer func() {
+		m.infoMux.Lock()
+		m.currentlyTrainingModel = ""
+		m.isTraining = false
+		m.infoMux.Unlock()
+	}()
+
+	tempFile, err := os.Open(tempFileName)
+	if err != nil {
+		m.logger.Error("Training job failed: could not re-open corpus file for reading", "file", tempFileName, "error", err)
+		_ = os.Remove(tempFileName)
+		return
+	}
+
+	// Defer closing the file then deleting it
+	defer func() {
+		_ = tempFile.Close()
+		_ = os.Remove(tempFileName)
+	}()
 
 	ctx := context.Background()
 
 	modelInfo, err := m.gen.GetModelInfo(ctx, modelName)
 	if err != nil {
-		m.logger.Error("Training job failed: could not get model info from staging DB", "error", err)
+		m.logger.Error("Training job failed: could not get model info", "model", modelName, "error", err)
 		return
 	}
 
 	err = m.gen.Train(ctx, modelInfo, tempFile)
 	if err != nil {
-		m.logger.Error("Training job failed: could not train model", "error", err)
+		m.logger.Error("Training job failed during training", "model", modelName, "error", err)
+	} else {
+		m.logger.Info("Training job completed successfully", "model", modelName)
 	}
 }
