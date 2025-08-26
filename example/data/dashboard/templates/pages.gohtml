@@ -31,12 +31,13 @@
                 <h3>IP Address Analysis</h3>
                 <button type="button" class="secondary show-all-btn" data-table="ips">Show Top 5</button>
             </div>
-            <table id="ips-table">
+            <table id="ips-table" class="responsive-table">
                 <thead>
                 <tr>
                     <th class="sortable" data-sort="last_seen">Status</th>
                     <th class="sortable" data-sort="ip_address">IP Address</th>
                     <th class="sortable" data-sort="total_hits">Hits</th>
+                    <th class="sortable" data-sort="hit_rate">Hit Rate</th>
                     <th class="sortable" data-sort="last_seen">Last Seen</th>
                 </tr>
                 </thead>
@@ -49,12 +50,13 @@
                 <h3>User Agent Analysis</h3>
                 <button type="button" class="secondary show-all-btn" data-table="agents">Show Top 5</button>
             </div>
-            <table id="agents-table">
+            <table id="agents-table" class="responsive-table">
                 <thead>
                 <tr>
                     <th class="sortable" data-sort="last_seen">Status</th>
                     <th class="sortable" data-sort="user_agent">User Agent</th>
                     <th class="sortable" data-sort="total_hits">Hits</th>
+                    <th class="sortable" data-sort="hit_rate">Hit Rate</th>
                     <th class="sortable" data-sort="last_seen">Last Seen</th>
                 </tr>
                 </thead>
@@ -254,6 +256,38 @@
                     </div>
                 </div>
             </div>
+            <div class="card hidden-view" id="model-testing-card" data-scope="markov:read">
+                <div class="card-header">
+                    <h3>Test Generation</h3>
+                </div>
+                <div class="card-content">
+                    <form id="generateTextForm">
+                        <label for="generateStartText">Starting Text (Optional)</label>
+                        <input id="generateStartText" placeholder="e.g., once upon a time">
+
+                        <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 1rem;">
+                            <div>
+                                <label for="generateMaxLength">Max Length</label>
+                                <input type="number" id="generateMaxLength" value="50" min="1" max="500">
+                            </div>
+                            <div>
+                                <label for="generateTemp">Temperature</label>
+                                <input type="number" id="generateTemp" value="0.8" min="0" max="2" step="0.1">
+                            </div>
+                            <div>
+                                <label for="generateTopK">Top-K</label>
+                                <input type="number" id="generateTopK" value="0" min="0" max="100">
+                            </div>
+                        </div>
+
+                        <button type="submit" style="margin-top: 1rem;">Generate</button>
+                    </form>
+                    <hr>
+                    <label for="generateResult">Generated Text</label>
+                    <textarea id="generateResult" readonly
+                              placeholder="Generation results will appear here..."></textarea>
+                </div>
+            </div>
             <div class="card" data-scope="markov:write">
                 <div class="card-header"><h3>Global Actions</h3></div>
                 <div class="card-content">
@@ -289,13 +323,13 @@
                         </svg>
                     </button>
                 </div>
-                <table id="keys-table" style="width:100%;">
+                <table id="keys-table" style="width:100%;" class="responsive-table">
                     <thead>
                     <tr>
                         <th>ID</th>
                         <th>Description</th>
                         <th>Scopes</th>
-                        <th></th>
+                        <th>Actions</th>
                     </tr>
                     </thead>
                     <tbody></tbody>

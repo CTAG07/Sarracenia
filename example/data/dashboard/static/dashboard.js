@@ -271,7 +271,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 break;
             case 'markov-content':
                 if (!appState.dataCache.models) loadMarkovModels();
-                pollTrainingStatus();
                 break;
             case 'auth-content':
                 if (!appState.dataCache.keys) loadApiKeys();
@@ -345,7 +344,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const models = await apiRequest('/api/markov/models', {}, button);
             appState.dataCache.models = models;
             renderMarkovPage();
-            await pollTrainingStatus();
+            startPolling();
         } catch (error) {
             selector.innerHTML = '<option>Failed to load models</option>';
         }
@@ -399,10 +398,32 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        const calculateHitRate = (item) => {
+            if (!item.first_seen || !item.last_seen || item.total_hits <= 1) {
+                return 0;
+            }
+            const firstSeen = new Date(item.first_seen).getTime();
+            const lastSeen = new Date(item.last_seen).getTime();
+            const durationMs = lastSeen - firstSeen;
+            if (durationMs < 1000) { // If duration is less than a second, treat as instantaneous
+                return Infinity;
+            }
+            const durationMinutes = durationMs / 60000;
+            return (item.total_hits - 1) / durationMinutes;
+        };
+
         const sortedData = [...data].sort((a, b) => {
             if (state.sort.dir === 'none') return 0;
-            const valA = a[state.sort.key];
-            const valB = b[state.sort.key];
+
+            let valA, valB;
+            if (state.sort.key === 'hit_rate') {
+                valA = calculateHitRate(a);
+                valB = calculateHitRate(b);
+            } else {
+                valA = a[state.sort.key];
+                valB = b[state.sort.key];
+            }
+
             const direction = state.sort.dir === 'asc' ? 1 : -1;
             if (valA < valB) return -1 * direction;
             if (valA > valB) return 1 * direction;
@@ -428,12 +449,16 @@ document.addEventListener("DOMContentLoaded", () => {
         tbody.innerHTML = dataToShow.map(item => {
             const identity = item.ip_address || item.user_agent;
             const recency = getRecencyInfo(item.last_seen);
+            const hitRate = calculateHitRate(item);
+            const hitRateDisplay = isFinite(hitRate) ? `${hitRate.toFixed(2)}/min` : 'N/A';
+
             return `
                 <tr>
-                    <td><div style="display: flex; align-items: center; gap: 8px;"><span class="recency-dot ${recency.class}"></span>${recency.title}</div></td>
-                    <td title="${identity}">${identity}</td>
-                    <td>${item.total_hits.toLocaleString()}</td>
-                    <td>${new Date(item.last_seen).toLocaleString()}</td>
+                    <td data-label="Status"><div style="display: flex; align-items: center; gap: 8px;"><span class="recency-dot ${recency.class}"></span>${recency.title}</div></td>
+                    <td data-label="${item.ip_address ? 'IP Address' : 'User Agent'}" title="${identity}">${identity}</td>
+                    <td data-label="Hits">${item.total_hits.toLocaleString()}</td>
+                    <td data-label="Hit Rate">${hitRateDisplay}</td>
+                    <td data-label="Last Seen">${new Date(item.last_seen).toLocaleString()}</td>
                 </tr>
             `;
         }).join('');
@@ -511,10 +536,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const renderKeyRow = key => `
             <tr>
-                <td>${key.id}</td>
-                <td>${key.description}</td>
-                <td class="scopes-cell">${key.scopes.join(', ')}</td>
-                <td>
+                <td data-label="ID">${key.id}</td>
+                <td data-label="Description">${key.description}</td>
+                <td data-label="Scopes" class="scopes-cell">${key.scopes.join(', ')}</td>
+                <td data-label="Actions">
                     <button type="button" class="remove-item-btn danger" data-key-id="${key.id}" ${key.id === 1 ? 'disabled title="Master key cannot be deleted"' : 'title="Delete key"'}>
                         <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -653,6 +678,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const isEdit = selected && !isNew;
         document.getElementById('create-model-form').classList.toggle('hidden-view', !isNew);
         document.getElementById('existing-model-actions').classList.toggle('hidden-view', !isEdit);
+        document.getElementById('model-testing-card').classList.toggle('hidden-view', !isEdit);
     }
 
     function applyTheme(theme) {
@@ -831,6 +857,31 @@ document.addEventListener("DOMContentLoaded", () => {
         // --- Markov Page ---
         document.getElementById('refreshModelListBtn').addEventListener('click', e => loadMarkovModels(e.currentTarget));
         document.getElementById('modelSelector').addEventListener('change', handleModelSelection);
+        document.getElementById('generateTextForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.currentTarget.querySelector('button[type="submit"]');
+            const modelName = document.getElementById('modelSelector').value;
+            const resultArea = document.getElementById('generateResult');
+
+            const payload = {
+                maxLength: parseInt(document.getElementById('generateMaxLength').value),
+                temperature: parseFloat(document.getElementById('generateTemp').value),
+                topK: parseInt(document.getElementById('generateTopK').value),
+                startText: document.getElementById('generateStartText').value.trim(),
+            };
+
+            resultArea.value = "Generating...";
+
+            try {
+                const result = await apiRequest(`/api/markov/models/${modelName}/generate`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                }, button);
+                resultArea.value = result.text;
+            } catch (error) {
+                resultArea.value = `Error: ${error.message}`;
+            }
+        });
         document.getElementById('createModelFormInternal').addEventListener('submit', async e => {
             e.preventDefault();
             const name = document.getElementById('createModelName').value;
@@ -1150,7 +1201,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            await apiRequest(`/api/templates/${name}`, {method: 'PUT', body: content, headers: {'Content-Type': 'text/plain'}}, button);
+            await apiRequest(`/api/templates/${name}`, {
+                method: 'PUT',
+                body: content,
+                headers: {'Content-Type': 'text/plain'}
+            }, button);
             showToast(`Template "${name}" saved successfully.`);
         } catch (error) {
             // Error is shown by apiRequest
@@ -1172,7 +1227,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const fullName = baseName.replace(/\.tmpl\.html$|\.part\.html$/, '') + extension;
 
         try {
-            await apiRequest(`/api/templates/${fullName}`, {method: 'PUT', body: content, headers: {'Content-Type': 'text/plain'}}, button);
+            await apiRequest(`/api/templates/${fullName}`, {
+                method: 'PUT',
+                body: content,
+                headers: {'Content-Type': 'text/plain'}
+            }, button);
             showToast(`Template "${fullName}" created successfully.`);
 
             // Reset form
@@ -1277,7 +1336,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 stopPolling();
             }
         } catch (error) {
-            renderTrainingStatus({ is_training: false });
+            renderTrainingStatus({is_training: false});
             stopPolling();
         }
     }

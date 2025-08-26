@@ -61,6 +61,13 @@ type PruneRequest struct {
 	MinFreq int `json:"minFreq"`
 }
 
+type GenerateRequest struct {
+	MaxLength   int     `json:"maxLength"`
+	Temperature float64 `json:"temperature"`
+	TopK        int     `json:"topK"`
+	StartText   string  `json:"startText"`
+}
+
 // handleListAndCreateModels handles GET for listing and POST for creating models.
 func (m *MarkovAPI) handleListAndCreateModels(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -238,6 +245,40 @@ func (m *MarkovAPI) handleModelByName(w http.ResponseWriter, r *http.Request) {
 		if err = m.gen.ExportModel(r.Context(), model, w); err != nil {
 			m.logger.Error("Failed to export model", "name", modelName, "error", err)
 		}
+
+	case "generate":
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", "POST")
+			respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+			return
+		}
+		if !hasScope(r, "markov:read") {
+			respondWithError(w, http.StatusForbidden, "Forbidden: requires 'markov:read' scope")
+			return
+		}
+
+		var req GenerateRequest
+		if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid JSON request body")
+			return
+		}
+
+		genOpts := []markov.GenerateOption{
+			markov.WithMaxLength(req.MaxLength),
+			markov.WithTemperature(req.Temperature),
+			markov.WithTopK(req.TopK),
+			markov.WithEarlyTermination(true),
+		}
+
+		var generatedText string
+		generatedText, err = m.gen.GenerateFromString(r.Context(), model, req.StartText, genOpts...)
+		if err != nil {
+			m.logger.Error("Failed to generate text from model", "name", modelName, "error", err)
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Generation failed: %v", err))
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, map[string]string{"text": generatedText})
 
 	default:
 		respondWithError(w, http.StatusNotFound, "Action not found")

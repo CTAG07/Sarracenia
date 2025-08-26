@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-// chainLink Is a struct used for batching chain inserts.
+// chainLink is a struct used for batching chain inserts.
 type chainLink struct {
 	prefixID    int
 	nextTokenID int
@@ -39,93 +39,97 @@ func (g *Generator) InsertToken(ctx context.Context, model ModelInfo, prefix str
 // datasets efficiently. The entire operation is performed within a single
 // database transaction to ensure data integrity.
 func (g *Generator) Train(ctx context.Context, model ModelInfo, data io.Reader) error {
-	// maxSentenceLength prevents massive sentences from taking up a large amount of memory
 	const maxSentenceLength = 4096
-	// chainBatchSize determines how many chain links are buffered in memory before being written to the database in a single batch.
 	const chainBatchSize = 1000
 
-	tx, err := g.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	// All transaction-specific statements will also be closed with this or the .Commit()
-	defer func(tx *sql.Tx) {
-		_ = tx.Rollback()
-	}(tx)
-
 	prefixCache := make(map[string]int)
-
 	chainBatch := make([]chainLink, 0, chainBatchSize)
-
 	var sentenceCount int64
 
-	stmtInsertVocab := tx.StmtContext(ctx, g.stmtInsertVocab)
-	stmtGetOrInsertPrefix := tx.StmtContext(ctx, g.stmtGetOrInsertPrefix)
-	stmtInsertChainBatch, err := tx.PrepareContext(ctx, `INSERT INTO markov_chains (model_id, prefix_id, next_token_id, frequency) VALUES (?, ?, ?, 1) ON CONFLICT(model_id, prefix_id, next_token_id) DO UPDATE SET frequency = frequency + 1;`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare batch chain insert statement: %w", err)
-	}
-	defer func(stmt *sql.Stmt) {
-		_ = stmt.Close()
-	}(stmtInsertChainBatch)
-
+	// commitChainBatch now creates, uses, and commits its own short-lived transaction.
 	commitChainBatch := func(batch *[]chainLink) error {
 		if len(*batch) == 0 {
 			return nil
 		}
+
+		tx, err := g.db.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin batch transaction: %w", err)
+		}
+		defer func(tx *sql.Tx) {
+			_ = tx.Rollback()
+		}(tx) // Guarantees cleanup on error.
+
+		// Prepare the statement on the short-lived transaction.
+		stmt, err := tx.PrepareContext(ctx, `INSERT INTO markov_chains (model_id, prefix_id, next_token_id, frequency) VALUES (?, ?, ?, 1) ON CONFLICT(model_id, prefix_id, next_token_id) DO UPDATE SET frequency = frequency + 1;`)
+		if err != nil {
+			return fmt.Errorf("failed to prepare batch chain insert statement: %w", err)
+		}
+		defer func(stmt *sql.Stmt) {
+			_ = stmt.Close()
+		}(stmt)
+
 		for _, link := range *batch {
-			if _, err := stmtInsertChainBatch.ExecContext(ctx, model.Id, link.prefixID, link.nextTokenID); err != nil {
+			if _, err = stmt.ExecContext(ctx, model.Id, link.prefixID, link.nextTokenID); err != nil {
+				// The defer tx.Rollback() will handle the failure.
 				return fmt.Errorf("failed during batch insert of chain link (%d -> %d): %w", link.prefixID, link.nextTokenID, err)
 			}
 		}
-		*batch = (*batch)[:0]
-		return nil
+
+		*batch = (*batch)[:0] // Clear the batch after processing.
+
+		return tx.Commit() // Commit the successful batch transaction.
 	}
 
 	stream := g.tokenizer.NewStream(data)
 	var currentSentence []int
 	var token *Token
+	var err error
 
 	for {
 		token, err = stream.Next()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				break
+				break // End of stream.
 			}
 			return fmt.Errorf("tokenizer error: %w", err)
 		}
 
 		if !token.EOC && len(currentSentence) < maxSentenceLength {
 			var tokenID int
-			if err = stmtInsertVocab.QueryRowContext(ctx, token.Text).Scan(&tokenID); err != nil {
+			// Use the generator's main prepared statement for vocabulary inserts.
+			if err = g.stmtInsertVocab.QueryRowContext(ctx, token.Text).Scan(&tokenID); err != nil {
 				return fmt.Errorf("sql insert vocabulary error for token '%s': %w", token.Text, err)
 			}
 			currentSentence = append(currentSentence, tokenID)
 		} else {
 			if len(currentSentence) > 0 {
-				if err := processSentence(ctx, model, currentSentence, prefixCache, &chainBatch, stmtGetOrInsertPrefix); err != nil {
+				if err = g.processSentence(ctx, model, currentSentence, prefixCache, &chainBatch); err != nil {
 					return fmt.Errorf("sentence processing error: %w", err)
 				}
 				sentenceCount++
 				currentSentence = currentSentence[:0]
 			}
 
+			// If the batch is full, commit it to the database.
 			if len(chainBatch) >= chainBatchSize {
-				if err := commitChainBatch(&chainBatch); err != nil {
+				if err = commitChainBatch(&chainBatch); err != nil {
 					return err
 				}
 			}
 		}
 	}
 
+	// Process any remaining tokens in the last sentence.
 	if len(currentSentence) > 0 {
-		if err := processSentence(ctx, model, currentSentence, prefixCache, &chainBatch, stmtGetOrInsertPrefix); err != nil {
+		if err = g.processSentence(ctx, model, currentSentence, prefixCache, &chainBatch); err != nil {
 			return fmt.Errorf("final sentence processing error: %w", err)
 		}
 		sentenceCount++
 	}
 
-	if err := commitChainBatch(&chainBatch); err != nil {
+	// Commit the final batch of chain links.
+	if err = commitChainBatch(&chainBatch); err != nil {
 		return err
 	}
 
@@ -135,10 +139,10 @@ func (g *Generator) Train(ctx context.Context, model ModelInfo, data io.Reader) 
 		slog.Int64("sentences_processed", sentenceCount),
 	)
 
-	return tx.Commit()
+	return nil
 }
 
-func processSentence(ctx context.Context, model ModelInfo, sentence []int, prefixCache map[string]int, chainBatch *[]chainLink, stmtGetOrInsertPrefix *sql.Stmt) error {
+func (g *Generator) processSentence(ctx context.Context, model ModelInfo, sentence []int, prefixCache map[string]int, chainBatch *[]chainLink) error {
 	if len(sentence) == 0 {
 		return nil
 	}
@@ -148,7 +152,7 @@ func processSentence(ctx context.Context, model ModelInfo, sentence []int, prefi
 	fullSlice[len(fullSlice)-1] = EOCTokenID
 
 	var keyBuf []byte
-	for i := 0; i < len(sentence)+1; i++ { // Iterate len+1 to include the final EOC token.
+	for i := 0; i < len(sentence)+1; i++ {
 		prefixSlice := fullSlice[i : i+model.Order]
 		nextToken := fullSlice[i+model.Order]
 
@@ -164,7 +168,7 @@ func processSentence(ctx context.Context, model ModelInfo, sentence []int, prefi
 		var prefixID int
 		var ok bool
 		if prefixID, ok = prefixCache[prefixKey]; !ok {
-			if err := stmtGetOrInsertPrefix.QueryRowContext(ctx, prefixKey).Scan(&prefixID); err != nil {
+			if err := g.stmtGetOrInsertPrefix.QueryRowContext(ctx, prefixKey).Scan(&prefixID); err != nil {
 				return fmt.Errorf("failed to get or insert prefix '%s': %w", prefixKey, err)
 			}
 			prefixCache[prefixKey] = prefixID

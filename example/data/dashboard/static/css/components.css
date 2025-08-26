@@ -45,7 +45,7 @@
 
 /* Navigation */
 #menu-toggle {
-    display: none;
+    display: none; /* Hide by default on desktop */
     background: transparent;
     border: none;
     color: var(--text-secondary);
@@ -889,4 +889,72 @@ table th.sortable[data-sort-dir="desc"]::after {
 
 .status-indicator-hidden {
     display: none !important;
+}
+
+#model-testing-card .card-content {
+    display: flex;
+    flex-direction: column;
+}
+
+#generateTextForm {
+    display: flex;
+    flex-direction: column;
+}
+
+#generateResult {
+    flex-grow: 1;
+    min-height: 150px;
+    background-color: var(--bg-main);
+    color: var(--text-secondary);
+    resize: none;
+}
+
+/* Responsive Tables */
+@media (max-width: 768px) {
+    .responsive-table {
+        border: none;
+    }
+
+    .responsive-table thead {
+        display: none;
+    }
+
+    .responsive-table tr {
+        display: block;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .responsive-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .75rem 1rem;
+        text-align: right;
+        white-space: normal;
+        max-width: none;
+    }
+
+    .responsive-table td:not(:last-child) {
+        border-bottom: 1px solid var(--bg-main);
+    }
+
+    .responsive-table td::before {
+        content: attr(data-label);
+        font-weight: 500;
+        text-align: left;
+        color: var(--text-secondary);
+        padding-right: 1rem;
+    }
+
+    .responsive-table td[data-label="Actions"] {
+        justify-content: center;
+    }
+
+    .scopes-cell {
+        white-space: normal;
+        word-break: break-all;
+    }
 }
