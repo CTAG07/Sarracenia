@@ -18,6 +18,11 @@
       "max_drip_feed_delay_ms": 1000,
       "min_drip_feed_chunks": 1,
       "max_drip_feed_chunks": 20
+    },
+    "stats_config": {
+      "sync_interval_sec": 30,
+      "forget_threshold": 10,
+      "forget_delay_hours": 24
     }
   },
   "template_config": {

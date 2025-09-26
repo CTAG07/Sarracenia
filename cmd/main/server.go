@@ -70,6 +70,11 @@ func NewServer(config *Config, logger *slog.Logger, db *sql.DB, actionChan chan 
 	serverAPI := NewServerAPI(config, actionChan, tm, logger)
 	whitelistAPI := NewWhitelistAPI(db, logger, wlc)
 
+	// initialize the stats cache with configuration
+	if err = statsAPI.InitializeCache(config.Server.StatsConfig); err != nil {
+		return nil, fmt.Errorf("failed to initialize stats cache: %w", err)
+	}
+
 	// create object, register routes to the mux, and return it
 	server := &Server{
 		config:       config,
@@ -243,21 +248,29 @@ func (s *Server) setTarpitHeaders(w http.ResponseWriter) {
 }
 
 func getClientIP(r *http.Request) string {
-	// The X-Real-Ip header is often set by proxies and is a reliable source.
-	realIP := r.Header.Get("X-Real-IP")
-	if realIP != "" {
+	// First check X-Real-IP header (usually set by proxies)
+	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
 		return realIP
 	}
 
-	// The X-Forwarded-For header can contain a comma-separated list of IPs.
-	// The rightmost IP is the one most recently added by a proxy and is the most trustworthy.
-	forwardedFor := r.Header.Get("X-Forwarded-For")
-	if forwardedFor != "" {
+	// Then check X-Forwarded-For header
+	// The leftmost IP is usually the original client when using trusted proxies
+	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
 		ips := strings.Split(forwardedFor, ",")
-		return strings.TrimSpace(ips[len(ips)-1])
+		for _, ip := range ips {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				return ip
+			}
+		}
 	}
 
-	// If no headers are present, fall back to the remote address.
+	// Cloudflare also adds this header
+	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
+		return cfIP
+	}
+
+	// As a last resort, fall back to the remote address
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		// If splitting fails (e.g., no port), return the address as is.

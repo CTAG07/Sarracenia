@@ -21,6 +21,7 @@ type ServerConfig struct {
 	DashboardStaticPath string        `json:"dashboard_static_path"`
 	EnabledTemplates    []string      `json:"enabled_templates"`
 	TarpitConfig        *TarpitConfig `json:"tarpit_config"`
+	StatsConfig         *StatsConfig  `json:"stats_config"`
 }
 
 // TarpitConfig holds settings for response delaying and drip-feeding.
@@ -32,6 +33,13 @@ type TarpitConfig struct {
 	DripFeedDelayMax  int  `json:"max_drip_feed_delay_ms"`
 	DripFeedChunksMin int  `json:"min_drip_feed_chunks"`
 	DripFeedChunksMax int  `json:"max_drip_feed_chunks"`
+}
+
+// StatsConfig holds settings for statistics caching and cleanup.
+type StatsConfig struct {
+	SyncIntervalSec  int `json:"sync_interval_sec"`
+	ForgetThreshold  int `json:"forget_threshold"`
+	ForgetDelayHours int `json:"forget_delay_hours"`
 }
 
 // Config is the top-level configuration struct that aggregates all other configs.
@@ -60,6 +68,11 @@ func DefaultServerConfig() *ServerConfig {
 			DripFeedDelayMax:  1000,
 			DripFeedChunksMin: 1,
 			DripFeedChunksMax: 20,
+		},
+		StatsConfig: &StatsConfig{
+			SyncIntervalSec:  30,
+			ForgetThreshold:  10,
+			ForgetDelayHours: 24,
 		},
 	}
 }

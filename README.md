@@ -176,6 +176,9 @@ For Linux servers, an installation script is provided to set up Sarracenia as a 
     * **Copy this key immediately.** It will not be shown again.
     * Once created, all API endpoints (including the dashboard) will be secured.
 
+**Please do note** the API has no rate-limiting. Please do not expose it to the internet without some external
+protections.
+
 ## Configuration (`config.json`)
 
 Sarracenia is configured using a `config.json` file in the same directory as the executable.
@@ -193,6 +196,7 @@ Sarracenia is configured using a `config.json` file in the same directory as the
 | `dashboard_static_path` | Path to the dashboard static assets (CSS, JS).                                             | `./data/dashboard/static/`               |
 | `enabled_templates`     | A list of `.tmpl.html` files to use for the tarpit. If empty, a random template is chosen. | `["page.tmpl.html"]`                     |
 | `tarpit_config`         | Settings for response delaying (see below).                                                |                                          |
+| `stats_config`          | Settings for the refresh and upkeep of the statistics db (see below).                      |                                          |
 
 **`tarpit_config` object:**
 
@@ -202,6 +206,14 @@ Sarracenia is configured using a `config.json` file in the same directory as the
 | `initial_delay_ms`   | Time to wait before sending the first byte.  | `0`     |
 | `drip_feed_delay_ms` | Time to wait between sending chunks.         | `500`   |
 | `drip_feed_chunks`   | Number of chunks to split the response into. | `10`    |
+
+**`stats_config` object:**
+
+| Key                  | Description                                                                                                | Default |
+|----------------------|------------------------------------------------------------------------------------------------------------|---------|
+| `sync_interval_sec`  | A request this many seconds after the last sync will trigger a sync.                                       | 30      |
+| `forget_threshold`   | The minimum amount of hits an IP or User Agent must have to not get trimmed. (0 or less disables trimming) | 10      |
+| `forget_delay_hours` | The amount of time an IP or User Agent has to go without a request to get trimmed.                         | 24      |
 
 ### `template_config`
 
@@ -213,16 +225,29 @@ This object configures the templating engine. See the full documentation in [
 This object configures the threat assessment system, allowing you to control how aggressively the tarpit responds based
 on client behavior.
 
-| Key                  | Description                                                 | Default |
-|----------------------|-------------------------------------------------------------|---------|
-| `base_threat`        | The starting threat score for any request.                  | `0`     |
-| `ip_hit_factor`      | Value added to score for each hit from an IP.               | `1.0`   |
-| `ua_hit_factor`      | Value added to score for each hit from a User Agent.        | `0.5`   |
-| `ip_hit_rate_factor` | Multiplier for hits-per-minute from an IP.                  | `10.0`  |
-| `ua_hit_rate_factor` | Multiplier for hits-per-minute from a User Agent.           | `5.0`   |
-| `max_threat`         | The absolute maximum threat score.                          | `1000`  |
-| `fallback_level`     | The threat stage (0-4) to use if no other threshold is met. | `0`     |
-| `stages`             | Defines the score thresholds for each threat stage.         |         |
+| Key                  | Description                                                     | Default |
+|----------------------|-----------------------------------------------------------------|---------|
+| `base_threat`        | The starting threat score for any request.                      | `0`     |
+| `ip_hit_factor`      | Value added to score for each hit from an IP.                   | `1.0`   |
+| `ua_hit_factor`      | Value added to score for each hit from a User Agent.            | `0.5`   |
+| `ip_hit_rate_factor` | Multiplier for hits-per-minute from an IP.                      | `10.0`  |
+| `ua_hit_rate_factor` | Multiplier for hits-per-minute from a User Agent.               | `5.0`   |
+| `max_threat`         | The absolute maximum threat score.                              | `1000`  |
+| `fallback_level`     | The threat stage (0-4) to use if no other threshold is met.     | `0`     |
+| `stages`             | Defines the score thresholds for each threat stage (see below). |         |
+
+Stages have default configuration values of the following:
+
+| Stage     | Enabled | Threshold |
+|-----------|---------|-----------|
+| `stage_1` | `True`  | `0`       |
+| `stage_2` | `False` | `25`      |
+| `stage_3` | `False` | `50`      |
+| `stage_4` | `False` | `75`      |
+| `stage_5` | `False` | `100`     |
+
+The stage fed to the template is the highest enabled one for which the threshold is met, or `fallback_level` if no
+threshold for an enabled stage is met.
 
 ## API Reference
 
