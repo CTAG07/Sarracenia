@@ -28,7 +28,7 @@
     }
   },
   "template_config": {
-    "markov_enabled": false,
+    "markov_enabled": true,
     "markov_separator": "",
     "markov_eoc": "",
     "markov_split_regex": "",
