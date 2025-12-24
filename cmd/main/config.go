@@ -16,7 +16,9 @@ type ServerConfig struct {
 	ApiAddr             string        `json:"api_addr"`
 	LogLevel            string        `json:"log_level"`
 	DataDir             string        `json:"data_dir"`
-	DatabasePath        string        `json:"database_path"`
+	MarkovDatabasePath  string        `json:"markov_database_path"`
+	AuthDatabasePath    string        `json:"auth_database_path"`
+	StatsDatabasePath   string        `json:"stats_database_path"`
 	DashboardTmplPath   string        `json:"dashboard_tmpl_path"`
 	DashboardStaticPath string        `json:"dashboard_static_path"`
 	EnabledTemplates    []string      `json:"enabled_templates"`
@@ -56,7 +58,9 @@ func DefaultServerConfig() *ServerConfig {
 		ApiAddr:             ":7278",
 		LogLevel:            "info",
 		DataDir:             "./data",
-		DatabasePath:        "./data/sarracenia.db?_journal_mode=WAL",
+		MarkovDatabasePath:  "./data/sarracenia_markov.db?_journal_mode=WAL&_busy_timeout=5000",
+		AuthDatabasePath:    "./data/sarracenia_auth.db?_journal_mode=WAL&_busy_timeout=5000",
+		StatsDatabasePath:   "./data/sarracenia_stats.db?_journal_mode=WAL&_busy_timeout=5000",
 		DashboardTmplPath:   "./data/dashboard/templates/",
 		DashboardStaticPath: "./data/dashboard/static/",
 		EnabledTemplates:    []string{"page.tmpl.html"},

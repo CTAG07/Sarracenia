@@ -10,315 +10,238 @@
 [![Sarracenia Test / Build / Release](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml)
 [![CodeQL Advanced](https://github.com/CTAG07/Sarracenia/actions/workflows/codeql.yml/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/codeql.yml)
 
-A Go-based anti-scraper tarpit inspired by Nepenthes.
+A high-performance, configurable anti-scraper tarpit server written in Go.
 
-The goal of Sarracenia is to serve as a defensive wall against web scrapers by generating endless, plausible-looking web
-pages, to prevent them from accessing protected content by keeping them in a loop of fake ones.
-
----
-
-## Reusable Components
-
-The core components of Sarracenia are standalone, reusable libraries in the `/pkg` directory.
-
-### `pkg/markov` - Go Markov Library
-
-A high-performance library for training and using Markov chain models. It is feature-complete and includes a streaming
-API, database persistence, and advanced generation features.
-
-**[➡️ View the full README for the Markov Library](./pkg/markov/README.md)**
-
-### `pkg/templating` - Dynamic HTML Template Engine
-
-The rendering engine for Sarracenia. It uses text from the Markov library and/or a wordlist to embed content within
-complex, randomized HTML structures.
-
-**[➡️ View the full README for the Templating Library](./pkg/templating/README.md)**
+Sarracenia acts as a defensive countermeasure against web scrapers by serving generated, endless, and plausibly structured web content. Its primary goal is to trap automated agents in infinite loops of fake data, preventing them from accessing legitimate resources.
 
 ---
 
-## Installation and Usage
+## Architecture & Components
 
-There are four primary ways to install and run Sarracenia. After installation, proceed to the **"Initial Setup"**
-section, which is common to all methods.
+Sarracenia is built on a modular architecture, with its core logic separated into reusable libraries.
 
-### 1. From a Pre-compiled Release (Recommended for most users)
+### Database Architecture
 
-This is the simplest method. It uses the pre-compiled binaries provided with each new version on GitHub.
+Sarracenia utilizes a split SQLite architecture running in WAL (Write-Ahead Logging) mode to ensure high concurrency and stability under load.
 
-**Steps:**
+*   **Markov DB:** Stores training data and chain models.
+*   **Stats DB:** Handles high-frequency write operations for request logging and analytics.
+*   **Auth DB:** Manages API keys, whitelists, and other low-frequency configuration data.
 
-1. **Download the Latest Release:**
-    * Go to the [**Sarracenia Releases Page**](https://github.com/CTAG07/Sarracenia/releases/latest).
-    * Find the asset that matches your operating system and architecture (e.g., `sarracenia-linux-amd64`,
-      `sarracenia-windows-amd64.exe`).
-    * Download the binary.
+This separation ensures that heavy background tasks, such as model training, do not block real-time statistics logging or administrative actions.
 
-2. **Prepare Initial Data:**
-    * From the same releases page, download the `Source code (zip)` or `Source code (tar.gz)` file.
-    * Extract the archive. You will need the contents of the `example` directory.
-    * Create your application directory and arrange the files as follows:
+### Core Libraries
 
-      ```
-      /your/sarracenia/folder/
-      ├── sarracenia              # The binary you downloaded
-      ├── config.json             # Copied from the extracted 'example' folder
-      └── data/
-          ├── dashboard/
-          │   ├── static/
-          │   └── templates/
-          ├── templates/          # Copied from 'example/data'
-          │   └── ...
-          └── wordlist.txt        # Copied from 'example/data'
-      ```
+*   **`pkg/markov`**: A persistent Markov chain library supporting streaming generation, database-backed storage, and advanced sampling techniques.
+    *   [Documentation](./pkg/markov/README.md)
+*   **`pkg/templating`**: A dynamic HTML generation engine capable of producing complex, randomized DOM structures and executing logic-heavy templates.
+    *   [Documentation](./pkg/templating/README.md)
 
-3. **Run the Application:**
-    * **On Linux or macOS:**
-      ```sh
-      # Make the binary executable
-      chmod +x ./sarracenia
+---
 
-      # Run the application
-      ./sarracenia
-      ```
-    * **On Windows:**
-        * Simply double-click the `sarracenia.exe` file or run it from the command prompt:
-      ```sh
-      .\sarracenia.exe
-      ```
+## Installation
 
-### 2. From Source (All Platforms)
+### 1. From Release (Recommended)
 
-This method is suitable for developers or for platforms where Docker or systemd are not available.
+1.  Download the latest binary for your OS from the [Releases Page](https://github.com/CTAG07/Sarracenia/releases/latest).
+2.  Download the Source code archive (zip/tar.gz) from the same release.
+3.  Extract the archive and copy the `example` directory contents to your working folder:
+    ```
+    /your/app/dir/
+    ├── sarracenia              # The binary
+    ├── config.json             # From example/config.json
+    └── data/                   # From example/data/
+    ```
+4.  Run the binary:
+    *   Linux/macOS: `./sarracenia`
+    *   Windows: `.\sarracenia.exe`
 
-**Prerequisites:**
+### 2. Docker
 
-* Go 1.24.5 or later.
-* Git for cloning the repository.
+A pre-built image is available on the GitHub Container Registry.
 
-**Steps:**
+```yaml
+services:
+  sarracenia:
+    image: ghcr.io/ctag07/sarracenia:latest
+    container_name: sarracenia
+    restart: unless-stopped
+    ports:
+      - "7277:7277" # Tarpit Server
+      - "7278:7278" # Dashboard & API
+    volumes:
+      - ./data:/app/data
+```
 
-1. **Clone the Repository:**
-   ```sh
-   git clone https://github.com/CTAG07/Sarracenia.git
-   cd Sarracenia
-   ```
+### 3. From Source
 
-2. **Build and Run:**
-   ```sh
-   # Build the application
-   go build -o sarracenia ./cmd/main
+**Prerequisites:** Go 1.24+
 
-   # Run the application
-   ./sarracenia
-   ```
-   On the first run, Sarracenia will automatically create a `config.json` and a `data` directory with the necessary
-   files by copying them from the `example` directory.
+```sh
+git clone https://github.com/CTAG07/Sarracenia.git
+cd Sarracenia
+go build -o sarracenia ./cmd/main
+./sarracenia
+```
 
-### 3. Docker (Recommended for Deployment)
-
-Pre-built Docker images are automatically published to the GitHub Container Registry (`ghcr.io`) with each new release.
-
-1. **Create a `docker-compose.yml` file:**
-   ```yaml
-   # docker-compose.yml
-   services:
-     sarracenia:
-       image: ghcr.io/ctag07/sarracenia:latest
-       container_name: sarracenia
-       restart: unless-stopped
-       ports:
-         - "7277:7277" # Tarpit server
-         - "7278:7278" # Dashboard/API
-       volumes:
-         # Persists your database, config, and templates
-         - sarracenia-data:/app/data
-
-   volumes:
-     sarracenia-data:
-   ```
-
-2. **Start the Service:**
-   ```sh
-   docker compose up -d
-   ```
-
-### 4. Systemd Service (Linux)
-
-For Linux servers, an installation script is provided to set up Sarracenia as a systemd service.
-
-1. **Clone the Repository:**
-   ```sh
-   git clone https://github.com/CTAG07/Sarracenia.git
-   cd Sarracenia
-   ```
-
-2. **Run the Installation Script:**
-   The script builds the binary, creates a dedicated user, and installs the application to `/opt/sarracenia`.
-   ```sh
-   sudo bash ./scripts/install_systemd.sh
-   ```
-
-3. **Manage the Service:**
-    * Check status: `systemctl status sarracenia.service`
-    * View logs: `journalctl -u sarracenia.service -f`
+---
 
 ## Initial Setup
 
-1. **Access the Dashboard:**
-    * By default, the tarpit runs on port `:7277` and the API/Dashboard runs on port `:7278`.
-    * Open a web browser and navigate to `http://localhost:7278`.
+1.  **Access the Dashboard**
+    By default, the dashboard runs on port `:7278`. Open a browser and navigate to `http://localhost:7278`.
 
-2. **Create the Master API Key:**
-    * The first time you access the dashboard, the API is unsecured.
-    * Navigate to the **API Keys** page.
-    * Create your first key. This key will automatically be assigned the master (`*`) scope, giving it full permissions.
-    * **Copy this key immediately.** It will not be shown again.
-    * Once created, all API endpoints (including the dashboard) will be secured.
+2.  **Create Master Credentials**
+    Upon first launch, the API is unsecured to allow initialization.
+    *   Navigate to the **API Keys** page.
+    *   Create a new key. The first key created is automatically assigned the Master (`*`) scope.
+    *   **Copy this key immediately.** It will not be shown again.
+    *   Once created, the API and Dashboard are immediately secured, and you will be logged in automatically.
 
-**Please do note** the API has no rate-limiting. Please do not expose it to the internet without some external
-protections.
+---
 
-## Configuration (`config.json`)
+## Configuration
 
-Sarracenia is configured using a `config.json` file in the same directory as the executable.
+Configuration is managed via `config.json`.
 
-### `server_config`
+### Server Configuration (`server_config`)
 
-| Key                     | Description                                                                                | Default                                  |
-|-------------------------|--------------------------------------------------------------------------------------------|------------------------------------------|
-| `server_addr`           | Address for the tarpit server to listen on.                                                | `:7277`                                  |
-| `api_addr`              | Address for the API and dashboard server.                                                  | `:7278`                                  |
-| `log_level`             | Logging level (`debug`, `info`, `warn`, `error`).                                          | `info`                                   |
-| `data_dir`              | Path to the data directory.                                                                | `./data`                                 |
-| `database_path`         | Path to the SQLite database file.                                                          | `./data/sarracenia.db?_journal_mode=WAL` |
-| `dashboard_tmpl_path`   | Path to the dashboard GoHTML template files.                                               | `./data/dashboard/templates/`            |
-| `dashboard_static_path` | Path to the dashboard static assets (CSS, JS).                                             | `./data/dashboard/static/`               |
-| `enabled_templates`     | A list of `.tmpl.html` files to use for the tarpit. If empty, a random template is chosen. | `["page.tmpl.html"]`                     |
-| `tarpit_config`         | Settings for response delaying (see below).                                                |                                          |
-| `stats_config`          | Settings for the refresh and upkeep of the statistics db (see below).                      |                                          |
+| Key                     | Description                                           | Default                                                            |
+|:------------------------|:------------------------------------------------------|:-------------------------------------------------------------------|
+| `server_addr`           | Tarpit server listener address.                       | `:7277`                                                            |
+| `api_addr`              | API/Dashboard server listener address.                | `:7278`                                                            |
+| `log_level`             | Logging verbosity (`debug`, `info`, `warn`, `error`). | `info`                                                             |
+| `data_dir`              | Base directory for data files.                        | `./data`                                                           |
+| `markov_database_path`  | Path to the Markov chain database.                    | `./data/sarracenia_markov.db?_journal_mode=WAL&_busy_timeout=5000` |
+| `auth_database_path`    | Path to the Auth/Whitelist database.                  | `./data/sarracenia_auth.db?_journal_mode=WAL&_busy_timeout=5000`   |
+| `stats_database_path`   | Path to the Statistics database.                      | `./data/sarracenia_stats.db?_journal_mode=WAL&_busy_timeout=5000`  |
+| `dashboard_tmpl_path`   | Path to dashboard templates.                          | `./data/dashboard/templates/`                                      |
+| `dashboard_static_path` | Path to dashboard static assets.                      | `./data/dashboard/static/`                                         |
 
-**`tarpit_config` object:**
+### Tarpit Configuration (`tarpit_config`)
 
-| Key                  | Description                                  | Default |
-|----------------------|----------------------------------------------|---------|
-| `enable_drip_feed`   | If true, sends the response in slow chunks.  | `false` |
-| `initial_delay_ms`   | Time to wait before sending the first byte.  | `0`     |
-| `drip_feed_delay_ms` | Time to wait between sending chunks.         | `500`   |
-| `drip_feed_chunks`   | Number of chunks to split the response into. | `10`    |
+Controls the behavior of the tarpit response mechanism.
 
-**`stats_config` object:**
+| Key                  | Description                                                          | Default |
+|:---------------------|:---------------------------------------------------------------------|:--------|
+| `enable_drip_feed`   | If true, responses are sent in slow chunks to hold connections open. | `false` |
+| `initial_delay_ms`   | Delay before sending the first byte.                                 | `0`     |
+| `drip_feed_delay_ms` | Delay between subsequent chunks.                                     | `500`   |
+| `drip_feed_chunks`   | Total chunks to split the response into.                             | `10`    |
 
-| Key                  | Description                                                                                                | Default |
-|----------------------|------------------------------------------------------------------------------------------------------------|---------|
-| `sync_interval_sec`  | A request this many seconds after the last sync will trigger a sync.                                       | 30      |
-| `forget_threshold`   | The minimum amount of hits an IP or User Agent must have to not get trimmed. (0 or less disables trimming) | 10      |
-| `forget_delay_hours` | The amount of time an IP or User Agent has to go without a request to get trimmed.                         | 24      |
+### Statistics Configuration (`stats_config`)
 
-### `template_config`
+| Key                  | Description                                      | Default |
+|:---------------------|:-------------------------------------------------|:--------|
+| `sync_interval_sec`  | Frequency of flushing stats from memory to disk. | `30`    |
+| `forget_threshold`   | Minimum hits required to retain an IP record.    | `10`    |
+| `forget_delay_hours` | Time without activity before a record is pruned. | `24`    |
 
-This object configures the templating engine. See the full documentation in [
-`pkg/templating/README.md`](./pkg/templating/README.md).
+### Template Configuration (`template_config`)
 
-### `threat_config`
+This object configures the templating engine. See the [full documentation here](./pkg/templating/README.md).
 
-This object configures the threat assessment system, allowing you to control how aggressively the tarpit responds based
-on client behavior.
+### Threat Configuration (`threat_config`)
 
-| Key                  | Description                                                     | Default |
-|----------------------|-----------------------------------------------------------------|---------|
-| `base_threat`        | The starting threat score for any request.                      | `0`     |
-| `ip_hit_factor`      | Value added to score for each hit from an IP.                   | `1.0`   |
-| `ua_hit_factor`      | Value added to score for each hit from a User Agent.            | `0.5`   |
-| `ip_hit_rate_factor` | Multiplier for hits-per-minute from an IP.                      | `10.0`  |
-| `ua_hit_rate_factor` | Multiplier for hits-per-minute from a User Agent.               | `5.0`   |
-| `max_threat`         | The absolute maximum threat score.                              | `1000`  |
-| `fallback_level`     | The threat stage (0-4) to use if no other threshold is met.     | `0`     |
-| `stages`             | Defines the score thresholds for each threat stage (see below). |         |
+Configures the heuristic threat assessment system.
 
-Stages have default configuration values of the following:
+| Key                  | Description                                     | Default |
+|:---------------------|:------------------------------------------------|:--------|
+| `base_threat`        | Initial score for any request.                  | `0`     |
+| `ip_hit_factor`      | Score added per IP hit.                         | `1.0`   |
+| `ua_hit_factor`      | Score added per User Agent hit.                 | `0.5`   |
+| `ip_hit_rate_factor` | Multiplier for IP hit rate (hits/min).          | `10.0`  |
+| `ua_hit_rate_factor` | Multiplier for UA hit rate (hits/min).          | `5.0`   |
+| `max_threat`         | Maximum possible threat score.                  | `1000`  |
+| `fallback_level`     | Default threat stage (0-4) if no threshold met. | `0`     |
+
+**Threat Stages:**
+Stages define thresholds for triggering increasingly aggressive tarpit templates.
 
 | Stage     | Enabled | Threshold |
-|-----------|---------|-----------|
+|:----------|:--------|:----------|
 | `stage_1` | `True`  | `0`       |
 | `stage_2` | `False` | `25`      |
 | `stage_3` | `False` | `50`      |
 | `stage_4` | `False` | `75`      |
 | `stage_5` | `False` | `100`     |
 
-The stage fed to the template is the highest enabled one for which the threshold is met, or `fallback_level` if no
-threshold for an enabled stage is met.
+---
 
 ## API Reference
 
-All API endpoints are prefixed with `/api` and require an API key sent in the `sarr-auth` header.
+**Note:** The API is designed for internal use by the dashboard. It does not implement rate limiting. Do not expose the API port directly to the public internet.
+
+All endpoints require the `sarr-auth` header containing a valid API key.
 
 ### Authentication (`/api/auth`)
 
-| Method   | Endpoint              | Scope         | Description                                                            |
-|----------|-----------------------|---------------|------------------------------------------------------------------------|
-| `GET`    | `/api/auth/me`        | *any*         | Checks the validity of the current key and returns its scopes.         |
-| `GET`    | `/api/auth/keys`      | `auth:manage` | Lists all API keys (without the raw key).                              |
-| `POST`   | `/api/auth/keys`      | `auth:manage` | Creates a new API key. The first key created is always a master key.   |
-| `DELETE` | `/api/auth/keys/{id}` | `auth:manage` | Deletes an API key by its ID. The master key (ID 1) cannot be deleted. |
+| Method   | Endpoint              | Scope         | Description                                        |
+|:---------|:----------------------|:--------------|:---------------------------------------------------|
+| `GET`    | `/api/auth/me`        | *Any*         | Validates current session.                         |
+| `GET`    | `/api/auth/keys`      | `auth:manage` | Lists API keys.                                    |
+| `POST`   | `/api/auth/keys`      | `auth:manage` | Creates a new key. **First key is always Master.** |
+| `DELETE` | `/api/auth/keys/{id}` | `auth:manage` | Deletes a key.                                     |
 
 ### Markov Models (`/api/markov`)
 
-| Method   | Endpoint                             | Scope          | Description                                                                                            |
-|----------|--------------------------------------|----------------|--------------------------------------------------------------------------------------------------------|
-| `GET`    | `/api/markov/models`                 | `markov:read`  | Lists all available Markov models and their info.                                                      |
-| `POST`   | `/api/markov/models`                 | `markov:write` | Creates a new, empty Markov model.                                                                     |
-| `DELETE` | `/api/markov/models/{name}`          | `markov:write` | Deletes a model and all its data.                                                                      |
-| `POST`   | `/api/markov/models/{name}/train`    | `markov:write` | Trains a model with a plain text corpus file in the request body.                                      |
-| `POST`   | `/api/markov/models/{name}/prune`    | `markov:write` | Prunes a model's chain data based on a minimum frequency.                                              |
-| `GET`    | `/api/markov/models/{name}/export`   | `markov:read`  | Exports a model as a JSON file.                                                                        |
-| `POST`   | `/api/markov/models/{name}/generate` | `markov:read`  | Generates text from a given markov model with given params                                             |
-| `POST`   | `/api/markov/import`                 | `markov:write` | Imports a model from a JSON file in the request body.                                                  |
-| `POST`   | `/api/markov/vocabulary/prune`       | `markov:write` | Prunes the global vocabulary of rare tokens across all models.                                         |
-| `GET`    | `/api/markov/training/status`        | `markov:read`  | Gives a json response indicating whether training is occurring, and if so, what model is being trained |
+**⚠️ Concurrency Warning:** Only one model can be trained at a time. Simultaneous training jobs will result in database lock errors.
+
+| Method   | Endpoint                             | Scope          | Description                       |
+|:---------|:-------------------------------------|:---------------|:----------------------------------|
+| `GET`    | `/api/markov/models`                 | `markov:read`  | Lists available models.           |
+| `POST`   | `/api/markov/models`                 | `markov:write` | Creates a new model.              |
+| `DELETE` | `/api/markov/models/{name}`          | `markov:write` | Deletes a model.                  |
+| `POST`   | `/api/markov/models/{name}/train`    | `markov:write` | Trains a model (Text/Plain body). |
+| `POST`   | `/api/markov/models/{name}/prune`    | `markov:write` | Prunes model data.                |
+| `GET`    | `/api/markov/models/{name}/export`   | `markov:read`  | Exports model as JSON.            |
+| `POST`   | `/api/markov/models/{name}/generate` | `markov:read`  | Generates text.                   |
+| `POST`   | `/api/markov/import`                 | `markov:write` | Imports a model from JSON.        |
+| `POST`   | `/api/markov/vocabulary/prune`       | `markov:write` | Global vocabulary pruning.        |
+| `GET`    | `/api/markov/training/status`        | `markov:read`  | Checks training status.           |
 
 ### Server Control (`/api/server`)
 
-| Method | Endpoint               | Scope            | Description                                                |
-|--------|------------------------|------------------|------------------------------------------------------------|
-| `GET`  | `/api/health`          | *none*           | Unauthenticated health check endpoint.                     |
-| `GET`  | `/api/server/version`  | `stats:read`     | Returns the application's build version, commit, and date. |
-| `GET`  | `/api/server/config`   | `server:config`  | Retrieves the current `config.json`.                       |
-| `PUT`  | `/api/server/config`   | `server:config`  | Updates and saves the `config.json`.                       |
-| `POST` | `/api/server/restart`  | `server:control` | Initiates a graceful server restart.                       |
-| `POST` | `/api/server/shutdown` | `server:control` | Initiates a graceful server shutdown.                      |
+| Method | Endpoint               | Scope            | Description          |
+|:-------|:-----------------------|:-----------------|:---------------------|
+| `GET`  | `/api/health`          | *None*           | Health check.        |
+| `GET`  | `/api/server/version`  | `stats:read`     | Server version info. |
+| `GET`  | `/api/server/config`   | `server:config`  | Get current config.  |
+| `PUT`  | `/api/server/config`   | `server:config`  | Update config.       |
+| `POST` | `/api/server/restart`  | `server:control` | Restart server.      |
+| `POST` | `/api/server/shutdown` | `server:control` | Shutdown server.     |
 
 ### Statistics (`/api/stats`)
 
-| Method   | Endpoint                     | Scope            | Description                                                   |
-|----------|------------------------------|------------------|---------------------------------------------------------------|
-| `GET`    | `/api/stats/summary`         | `stats:read`     | Gets a high-level summary of total requests, unique IPs, etc. |
-| `GET`    | `/api/stats/top_ips`         | `stats:read`     | Lists the top 100 most frequent IP addresses.                 |
-| `GET`    | `/api/stats/top_user_agents` | `stats:read`     | Lists the top 100 most frequent User Agents.                  |
-| `DELETE` | `/api/stats/all`             | `server:control` | **Deletes all collected statistics.**                         |
+| Method   | Endpoint                     | Scope            | Description               |
+|:---------|:-----------------------------|:-----------------|:--------------------------|
+| `GET`    | `/api/stats/summary`         | `stats:read`     | Global request summary.   |
+| `GET`    | `/api/stats/top_ips`         | `stats:read`     | Top 100 IPs by hit count. |
+| `GET`    | `/api/stats/top_user_agents` | `stats:read`     | Top 100 User Agents.      |
+| `DELETE` | `/api/stats/all`             | `server:control` | **Reset all statistics.** |
 
 ### Templates (`/api/templates`)
 
-| Method   | Endpoint                 | Scope             | Description                                                       |
-|----------|--------------------------|-------------------|-------------------------------------------------------------------|
-| `GET`    | `/api/templates`         | `templates:read`  | Lists the names of all loaded template and partial files.         |
-| `GET`    | `/api/templates/{name}`  | `templates:read`  | Gets the raw content of a template file.                          |
-| `PUT`    | `/api/templates/{name}`  | `templates:write` | Updates or creates a template file with the request body content. |
-| `DELETE` | `/api/templates/{name}`  | `templates:write` | Deletes a template file.                                          |
-| `POST`   | `/api/templates/refresh` | `templates:write` | Manually reloads all templates from disk.                         |
-| `POST`   | `/api/templates/test`    | `templates:read`  | Tests template syntax from the request body without saving.       |
-| `GET`    | `/api/templates/preview` | `templates:read`  | Renders a preview of a saved template with a given threat level.  |
+| Method   | Endpoint                 | Scope             | Description                 |
+|:---------|:-------------------------|:------------------|:----------------------------|
+| `GET`    | `/api/templates`         | `templates:read`  | List all templates.         |
+| `GET`    | `/api/templates/{name}`  | `templates:read`  | Get template content.       |
+| `PUT`    | `/api/templates/{name}`  | `templates:write` | Create/Update template.     |
+| `DELETE` | `/api/templates/{name}`  | `templates:write` | Delete template.            |
+| `POST`   | `/api/templates/refresh` | `templates:write` | Reload templates from disk. |
+| `POST`   | `/api/templates/test`    | `templates:read`  | Test template syntax.       |
+| `GET`    | `/api/templates/preview` | `templates:read`  | Render template preview.    |
 
 ### Whitelist (`/api/whitelist`)
 
-| Method   | Endpoint                   | Scope             | Description                               |
-|----------|----------------------------|-------------------|-------------------------------------------|
-| `GET`    | `/api/whitelist/ip`        | `whitelist:read`  | Lists all whitelisted IP addresses.       |
-| `POST`   | `/api/whitelist/ip`        | `whitelist:write` | Adds an IP address to the whitelist.      |
-| `DELETE` | `/api/whitelist/ip`        | `whitelist:write` | Removes an IP address from the whitelist. |
-| `GET`    | `/api/whitelist/useragent` | `whitelist:read`  | Lists all whitelisted User Agents.        |
-| `POST`   | `/api/whitelist/useragent` | `whitelist:write` | Adds a User Agent to the whitelist.       |
-| `DELETE` | `/api/whitelist/useragent` | `whitelist:write` | Removes a User Agent from the whitelist.  |
+| Method   | Endpoint                   | Scope             | Description                       |
+|:---------|:---------------------------|:------------------|:----------------------------------|
+| `GET`    | `/api/whitelist/ip`        | `whitelist:read`  | List whitelisted IPs.             |
+| `POST`   | `/api/whitelist/ip`        | `whitelist:write` | Add IP to whitelist.              |
+| `DELETE` | `/api/whitelist/ip`        | `whitelist:write` | Remove IP from whitelist.         |
+| `GET`    | `/api/whitelist/useragent` | `whitelist:read`  | List whitelisted User Agents.     |
+| `POST`   | `/api/whitelist/useragent` | `whitelist:write` | Add User Agent to whitelist.      |
+| `DELETE` | `/api/whitelist/useragent` | `whitelist:write` | Remove User Agent from whitelist. |
 
 ---
 
@@ -326,10 +249,5 @@ All API endpoints are prefixed with `/api` and require an API key sent in the `s
 
 This project is licensed under the AGPLv3.
 
-**Alternative Licensing**
-
-I understand that the AGPL-3.0 may not be suitable for all users. If you would like to use this project in a way not
-permitted by the AGPL-3.0 (for instance, in a closed-source application), I am happy to grant you a free, permissive
-license (such as the MIT License).
-
-Please contact me at **`82781942+CTAG07@users.noreply.github.com`** to request an alternative license.
+**Alternative Licensing:**
+If you require a permissive license (e.g., MIT) for commercial or closed-source use, please contact the maintainer at **`82781942+CTAG07@users.noreply.github.com`**.

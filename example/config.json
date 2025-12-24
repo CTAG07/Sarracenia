@@ -4,7 +4,9 @@
     "api_addr": ":7278",
     "log_level": "info",
     "data_dir": "./data",
-    "database_path": "./data/sarracenia.db?_journal_mode=WAL",
+    "markov_database_path": "./data/sarracenia_markov.db?_journal_mode=WAL&_busy_timeout=5000",
+    "auth_database_path": "./data/sarracenia_auth.db?_journal_mode=WAL&_busy_timeout=5000",
+    "stats_database_path": "./data/sarracenia_stats.db?_journal_mode=WAL&_busy_timeout=5000",
     "dashboard_tmpl_path": "./data/dashboard/templates/",
     "dashboard_static_path": "./data/dashboard/static/",
     "enabled_templates": [

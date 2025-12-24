@@ -24,7 +24,9 @@ type TemplateInput struct {
 
 type Server struct {
 	config            *Config
-	db                *sql.DB
+	markovDB          *sql.DB
+	authDB            *sql.DB
+	statsDB           *sql.DB
 	logger            *slog.Logger
 	mg                *markov.Generator
 	tm                *templating.TemplateManager
@@ -41,10 +43,10 @@ type Server struct {
 	dashboardTemplate *template.Template
 }
 
-func NewServer(config *Config, logger *slog.Logger, db *sql.DB, actionChan chan string) (*Server, error) {
+func NewServer(config *Config, logger *slog.Logger, markovDB *sql.DB, authDB *sql.DB, statsDB *sql.DB, actionChan chan string) (*Server, error) {
 
 	// markov initialization
-	mg, err := markov.NewGenerator(db, markov.NewDefaultTokenizer())
+	mg, err := markov.NewGenerator(markovDB, markov.NewDefaultTokenizer())
 	if err != nil {
 		return nil, fmt.Errorf("error creating markov generator: %v", err)
 	}
@@ -57,18 +59,18 @@ func NewServer(config *Config, logger *slog.Logger, db *sql.DB, actionChan chan 
 	}
 
 	wlc := NewWhitelistCache()
-	err = wlc.LoadFromDB(db)
+	err = wlc.LoadFromDB(authDB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load whitelist from db: %w", err)
 	}
 
 	// api initialization
-	authAPI := NewAuthAPI(db, logger)
+	authAPI := NewAuthAPI(authDB, logger)
 	templateAPI := NewTemplateAPI(tm, tc, logger)
 	markovAPI := NewMarkovAPI(mg, tm, logger)
-	statsAPI := NewStatsAPI(db, logger)
+	statsAPI := NewStatsAPI(statsDB, logger)
 	serverAPI := NewServerAPI(config, actionChan, tm, logger)
-	whitelistAPI := NewWhitelistAPI(db, logger, wlc)
+	whitelistAPI := NewWhitelistAPI(authDB, logger, wlc)
 
 	// initialize the stats cache with configuration
 	if err = statsAPI.InitializeCache(config.Server.StatsConfig); err != nil {
@@ -78,7 +80,9 @@ func NewServer(config *Config, logger *slog.Logger, db *sql.DB, actionChan chan 
 	// create object, register routes to the mux, and return it
 	server := &Server{
 		config:       config,
-		db:           db,
+		markovDB:     markovDB,
+		authDB:       authDB,
+		statsDB:      statsDB,
 		logger:       logger,
 		tm:           tm,
 		tc:           tc,

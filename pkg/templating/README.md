@@ -4,34 +4,79 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/CTAG07/Sarracenia)](https://golang.org)
 [![Part of Sarracenia](https://img.shields.io/badge/Part%20of-Sarracenia-8b5cf6)](https://github.com/CTAG07/Sarracenia)
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Go Report Card](https://goreportcard.com/badge/github.com/CTAG07/Sarracenia)](https://goreportcard.com/report/github.com/CTAG07/Sarracenia)
 
-A high-performance, configurable, and extensible Go templating engine designed for generating complex and dynamic web
-pages.
+A high-performance, extensible Go templating engine designed for generating complex, dynamic, and obfuscated web content.
 
-This library provides a comprehensive toolkit for building varied and intricate HTML content on the fly. It is built on
-the principle of server-side efficiency, allowing for the generation of sophisticated pages with minimal overhead. It is
-a ground-up, professional rewrite designed for stability, safety, and extensibility.
+Built for the Sarracenia tarpit, this engine specializes in creating plausible-looking but randomly generated HTML structures, integrated directly with Markov text generation sources.
 
-## Features
+## Installation
 
-* **📈 Highly Parameterized Functions:** All generation functions accept parameters (like `count`, `depth`, `complexity`)
-  enabling precise, dynamic control over the generated output directly from within your templates.
-* **🧠 Multi-Model Content Generation:** (Optionally) leverages the `Sarracenia/pkg/markov` library to generate
-  plausible, thematic text from multiple, distinct Markov models stored in a database.
-* **🕸️ Complex Structure Generation:** Includes a suite of functions for creating intricate HTML structures, such as
-  deeply nested DOMs (`nestDivs`) and complex, irregular tables (`randomComplexTable`).
-* **⚙️ Client-Side Content Rendering:** Provides functions to render content via JavaScript, using randomized
-  obfuscation schemes to protect the source content and require client-side script execution.
-* **🛠️ Configurable & Safe:** All computationally intensive functions are governed by safety limits in a
-  `TemplateConfig` struct, preventing templates from accidentally overloading the server or a client's browser.
-* **🚀 Built for Performance:** Engineered for minimal server-side load, ensuring efficient generation even under high
-  concurrency.
-* **🧩 Component-Based & Safe:** Fully supports Go's native template composition (`{{template "..."}}`). Uses a clear
-  file convention (`*.tmpl.html` for main pages, `*.part.html` for partials) to ensure only complete pages are randomly
-  selected, preventing accidental rendering of partials.
+```sh
+go get github.com/CTAG07/Sarracenia/pkg/templating
+```
 
-## Template Function Library (Macro Reference)
+## Quick Start
+
+```go
+package main
+
+import (
+	"bytes"
+	"log/slog"
+	"os"
+
+	"github.com/CTAG07/Sarracenia/pkg/templating"
+)
+
+func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	
+    // Initialize Config
+	cfg := templating.DefaultConfig()
+	
+    // Create Manager (Pass nil for generator if Markov features aren't needed)
+	tm, _ := templating.NewTemplateManager(logger, nil, cfg, "./data")
+
+	// Render a template by name
+	var buf bytes.Buffer
+	if err := tm.Execute(&buf, "page.tmpl.html", nil); err != nil {
+		panic(err)
+	}
+    
+    // Output: <html>...random content...</html>
+}
+```
+
+## Configuration
+
+The `TemplateConfig` struct controls the behavior and safety limits of the templating engine.
+
+| Key                          | Description                                                                             | Default         |
+|:-----------------------------|:----------------------------------------------------------------------------------------|:----------------|
+| `markov_enabled`             | Controls whether `markov` functions use the generator. Falls back to `random` if false. | `false`         |
+| `markov_separator`           | Separator used by the markov tokenizer.                                                 | `""`            |
+| `markov_eoc`                 | End-of-chain marker used by the markov tokenizer.                                       | `""`            |
+| `markov_split_regex`         | Regex for splitting tokens in the markov tokenizer.                                     | `""`            |
+| `markov_eoc_regex`           | Regex for detecting EOC tokens.                                                         | `""`            |
+| `markov_separator_exc_regex` | Regex for tokens that should not have a separator prefix.                               | `""`            |
+| `markov_eoc_exc_regex`       | Regex for tokens that should not have an EOC suffix.                                    | `""`            |
+| `path_whitelist`             | URL paths considered safe; excluded from random link generation.                        | `[]`            |
+| `min_subpaths`               | Minimum number of segments in generated URL paths.                                      | `1`             |
+| `max_subpaths`               | Maximum number of segments in generated URL paths.                                      | `5`             |
+| `max_json_depth`             | Hard limit on recursion depth for `randomJSON`.                                         | `8`             |
+| `max_nest_divs`              | Hard limit on recursion depth for `nestDivs`.                                           | `50`            |
+| `max_table_rows`             | Maximum rows for `randomComplexTable`.                                                  | `100`           |
+| `max_table_cols`             | Maximum columns for `randomComplexTable`.                                               | `50`            |
+| `max_form_fields`            | Maximum fields for `randomForm`.                                                        | `75`            |
+| `max_style_rules`            | Maximum complex CSS rules for `randomStyleBlock`.                                       | `200`           |
+| `max_css_vars`               | Maximum interdependent CSS variables for `randomCSSVars`.                               | `100`           |
+| `max_svg_elements`           | Complexity limit for `randomSVG`.                                                       | `7`             |
+| `max_js_content_size`        | Maximum content size (bytes) for `jsInteractiveContent`.                                | `1048576` (1MB) |
+| `max_js_waste_cycles`        | Maximum waste loop iterations for `jsInteractiveContent`.                               | `1,000,000`     |
+
+## Template Function Reference
+
+The engine exposes a wide range of custom functions to templates.
 
 ### Content (`funcs_content.go`)
 
@@ -101,154 +146,42 @@ a ground-up, professional rewrite designed for stability, safety, and extensibil
 
 ### Computationally Expensive (`funcs_expensive.go`)
 
-| Signature                                 | Description                                                                                                                                             |
-|:------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `randomStyleBlock type count`             | Generates a `<style>` block with `count` complex/nested CSS rules. Capped by `MaxStyleRules`.                                                           |
-| `randomCSSVars count`                     | Generates a `<style>` block with a chain of interdependent CSS custom properties. Capped by `MaxCssVars`.                                               |
-| `randomSVG type complexity`               | Generates a complex inline SVG. `complexity` controls detail. Capped by `MaxSvgElements`. Types: `"fractal"`, `"filters"`                               |
-| `jsInteractiveContent tag content cycles` | Generates a JS-powered element that decodes `content` after running a CPU waste loop for `cycles` iterations. Capped by `MaxJsContentSize/WasteCycles`. |
-
-## Installation
-
-```sh
-go get github.com/CTAG07/Sarracenia/pkg/templating
-```
-
-## Quick Start
-
-Here is a minimal example of setting up and using the `TemplateManager` to render a template.
-
-```go
-package main
-
-import (
-	"bytes"
-	"fmt"
-	"log"
-	"log/slog"
-	"os"
-
-	"github.com/CTAG07/Sarracenia/pkg/templating"
-)
-
-func main() {
-	// Assumes a logger and a dataDir are already set up.
-	var logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
-	var dataDir = "./data" // Directory containing templates/, words.txt, etc.
-
-	// 1. Create a config and the TemplateManager.
-	tplConfig := templating.DefaultConfig()
-	tplConfig.MarkovEnabled = false // Markov functions are disabled for this example.
-	// We pass 'nil' for the markov generator as it's not needed when MarkovEnabled is false.
-	tm, err := templating.NewTemplateManager(logger, nil, tplConfig, dataDir)
-	if err != nil {
-		log.Fatalf("Failed to create template manager: %v", err)
-	}
-
-	// 2. Execute a template by name.
-	var output bytes.Buffer
-	// Assumes a "page.tmpl.html" exists in data/templates. See example below.
-	err = tm.Execute(&output, "page.tmpl.html", nil)
-	if err != nil {
-		log.Fatalf("Failed to execute template: %v", err)
-	}
-
-	fmt.Println(output.String())
-}
-```
-
-**Example `data/templates/page.tmpl.html`:**
-
-```html
-<h1>{{randomSentence 12}}</h1>
-<ul>
-    {{range repeat 5}}
-    <li>Item: {{randomWord}}</li>
-    {{end}}
-</ul>
-```
+| Signature                                 | Description                                                                                                                                            |
+|:------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `randomStyleBlock type count`             | Generates a `<style>` block with `count` complex/nested CSS rules. Capped by `MaxStyleRules`.                                                          |
+| `randomCSSVars count`                     | Generates a `<style>` block with a chain of interdependent CSS custom properties. Capped by `MaxCssVars`.                                              |
+| `randomSVG type complexity`               | Generates a complex inline SVG. `complexity` controls detail. Capped by `MaxSvgElements`. Types: `"fractal"`, `"filters"`                              |
+| `jsInteractiveContent tag content cycles` | Generates a JS element that decodes `content` after running a CPU waste loop for `cycles` iterations. Capped by `MaxJsContentSize/WasteCycles`.        |
 
 ## Advanced Usage: The Composition Pattern
 
-The engine uses a clear file-naming convention to distinguish between main templates and reusable partials:
+The engine uses a strict file-naming convention to distinguish between stand-alone pages and reusable components.
 
-* `*.tmpl.html`: **Main Templates.** These are the entry points for rendering a complete page. They define the specific
-  content for the page and choose which layout to extend. Only files with this extension are included in the list for
-  random selection.
-* `*.part.html`: **Layouts & Partials.** These are reusable components. This includes full-page layouts (like
-  `layout.part.html`) and smaller components (like `_header.part.html`). They are never selected randomly and are meant
-  to be included by main templates.
+*   `*.tmpl.html`: **Main Templates.** These are complete pages (e.g., `page.tmpl.html`).
+*   `*.part.html`: **Partials.** These are reusable components (e.g., `layout.part.html`, `_header.part.html`). They should not be rendered directly and should only be used within a complete template.
 
-This is the recommended "composition" pattern, which is highly maintainable and avoids repetition.
+### Example Architecture
 
-**Go Application Code:**
-
-```go
-// In your main application, assuming 'tm' is an initialized TemplateManager
-// with Markov features enabled and a valid generator instance.
-pageData := map[string]any{
-"PageTitle": "My Dynamic Page",
-"Items":     []string{"Alpha", "Beta", "Gamma"},
-"TextModel": "tech-docs-model", // Specify which model to use for generation.
-}
-// Execute the page template, passing in the data map.
-err := tm.Execute(&output, "page.tmpl.html", pageData)
-// ... handle error
-```
-
-**`data/templates/layout.part.html` (Base Layout Partial)**
-
+**1. Base Layout (`data/templates/layout.part.html`)**
 ```html
 {{define "layout.part.html"}}
 <!DOCTYPE html>
 <html>
-<head>
-    <title>{{.PageTitle}}</title>
-</head>
 <body>
-{{/* Include the header partial, passing the data down */}}
-{{template "_header.part.html" .}}
-
-<main>
-    {{/* This is a placeholder for content from the main template */}}
     {{template "content" .}}
-</main>
-
-<footer>...</footer>
 </body>
 </html>
 {{end}}
 ```
 
-**`data/templates/_header.part.html` (Component Partial)**
-
+**2. Main Page (`data/templates/page.tmpl.html`)**
 ```html
-{{define "_header.part.html"}}
-<header>
-    <h1>{{.PageTitle}}</h1>
-    <nav>...</nav>
-</header>
-{{end}}
-```
-
-**`data/templates/page.tmpl.html` (Main Content Template)**
-
-```html
-{{/* First, specify which layout this page extends */}}
+{{/* Extend the layout */}}
 {{template "layout.part.html" .}}
 
-{{/*
-Then, define the content blocks that the layout expects.
-The "content" block will be injected into the layout's placeholder.
-*/}}
+{{/* Define the content block */}}
 {{define "content"}}
-<h2>Welcome to the Page</h2>
-<p>{{markovSentence .TextModel 25}}</p>
-<ul>
-    {{range .Items}}
-    <li>{{.}}</li>
-    {{end}}
-</ul>
+    <h1>{{markovSentence "tech-model" 10}}</h1>
 {{end}}
 ```
 
@@ -295,9 +228,7 @@ The templates used for the benchmarks are as follows:
 | **Execute/DataGeneration** | 77.57 µs  | 51.9 KB | 792       |
 | **Execute/Markov**         | 278.84 µs | 70.8 KB | 2,373     |
 
-### How to Run Benchmarks
-
-To run these benchmarks on your own machine, navigate to the package directory and use the following command:
+### Running Benchmarks
 
 ```sh
 cd pkg/templating
@@ -306,5 +237,4 @@ go test -bench . -benchmem
 
 ## License
 
-This library is part of the Sarracenia project and is licensed under the AGPLv3. See
-the [Project Readme](https://github.com/CTAG07/Sarracenia/blob/main/README.md) for details on alternative licensing.
+Licensed under the **AGPLv3**. See the [Sarracenia README](https://github.com/CTAG07/Sarracenia) for alternative licensing options.

@@ -991,6 +991,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: 'POST',
                 body: JSON.stringify({description, scopes})
             }, e.currentTarget.querySelector('button'));
+
+            if (newKey.id === 1) {
+                appState.apiKey = newKey.raw_key;
+                setCookie('sarr-api-key', newKey.raw_key, 365);
+                showToast('Master key created. You have been automatically logged in.');
+            }
+
             document.getElementById('newKeyValue').value = newKey.raw_key;
             document.getElementById('key-created-result').classList.add('visible');
             await loadApiKeys();

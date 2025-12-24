@@ -78,21 +78,29 @@ func run(actionChan chan string) (string, error) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 	logger.Info("Starting server cycle...")
 
-	db, err := initDB(config.Server.DatabasePath)
+	markovDB, err := initDB(config.Server.MarkovDatabasePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to initialize database: %w", err)
+		return "", fmt.Errorf("failed to initialize markov database: %w", err)
+	}
+	authDB, err := initDB(config.Server.AuthDatabasePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to initialize auth database: %w", err)
+	}
+	statsDB, err := initDB(config.Server.StatsDatabasePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to initialize stats database: %w", err)
 	}
 
-	if err = markov.SetupSchema(db); err != nil {
+	if err = markov.SetupSchema(markovDB); err != nil {
 		logger.Error("Failed to setup markov schema", "error", err)
 	}
-	if err = setupAuthSchema(db); err != nil {
+	if err = setupAuthSchema(authDB); err != nil {
 		logger.Error("Failed to setup auth schema", "error", err)
 	}
-	if err = setupStatsSchema(db); err != nil {
+	if err = setupStatsSchema(statsDB); err != nil {
 		logger.Error("Failed to setup stats schema", "error", err)
 	}
-	if err = setupWhitelistSchema(db); err != nil {
+	if err = setupWhitelistSchema(authDB); err != nil {
 		logger.Error("Failed to setup whitelist schema", "error", err)
 	}
 
@@ -112,9 +120,11 @@ func run(actionChan chan string) (string, error) {
 		IdleTimeout:  60 * time.Second, // Clean up idle keep-alive connections.
 	}
 
-	server, err := NewServer(config, logger, db, actionChan)
+	server, err := NewServer(config, logger, markovDB, authDB, statsDB, actionChan)
 	if err != nil {
-		_ = db.Close()
+		_ = markovDB.Close()
+		_ = authDB.Close()
+		_ = statsDB.Close()
 		return "", fmt.Errorf("failed to create server object: %w", err)
 	}
 
@@ -150,8 +160,14 @@ func run(actionChan chan string) (string, error) {
 	logger.Info("HTTP servers stopped.")
 
 	logger.Info("Closing database connection.")
-	if err = db.Close(); err != nil {
-		logger.Error("Failed to close database", "error", err)
+	if err = markovDB.Close(); err != nil {
+		logger.Error("Failed to close markov database", "error", err)
+	}
+	if err = authDB.Close(); err != nil {
+		logger.Error("Failed to close auth database", "error", err)
+	}
+	if err = statsDB.Close(); err != nil {
+		logger.Error("Failed to close stats database", "error", err)
 	}
 
 	return action, nil
