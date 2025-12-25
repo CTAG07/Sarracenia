@@ -79,21 +79,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push (CGO - Default)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./docker/Dockerfile.cgo
-          push: true
-          tags: ${{ steps.meta-cgo.outputs.tags }}
-          labels: ${{ steps.meta-cgo.outputs.labels }}
-          build-args: |
-            VERSION=${{ steps.meta-cgo.outputs.version }}
-            COMMIT=${{ steps.commit.outputs.sha }}
-            BUILD_DATE=${{ steps.date.outputs.date }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Build and push (Native)
         uses: docker/build-push-action@v6
         with:
@@ -104,6 +89,21 @@ jobs:
           labels: ${{ steps.meta-native.outputs.labels }}
           build-args: |
             VERSION=${{ steps.meta-native.outputs.version }}
+            COMMIT=${{ steps.commit.outputs.sha }}
+            BUILD_DATE=${{ steps.date.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push (CGO - Default)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile.cgo
+          push: true
+          tags: ${{ steps.meta-cgo.outputs.tags }}
+          labels: ${{ steps.meta-cgo.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta-cgo.outputs.version }}
             COMMIT=${{ steps.commit.outputs.sha }}
             BUILD_DATE=${{ steps.date.outputs.date }}
           cache-from: type=gha
