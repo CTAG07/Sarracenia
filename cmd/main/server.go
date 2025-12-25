@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/CTAG07/Sarracenia/pkg/markov"
@@ -24,6 +25,7 @@ type TemplateInput struct {
 
 type Server struct {
 	config            *Config
+	configMux         *sync.RWMutex
 	markovDB          *sql.DB
 	authDB            *sql.DB
 	statsDB           *sql.DB
@@ -64,12 +66,14 @@ func NewServer(config *Config, logger *slog.Logger, markovDB *sql.DB, authDB *sq
 		return nil, fmt.Errorf("failed to load whitelist from db: %w", err)
 	}
 
+	configMux := &sync.RWMutex{}
+
 	// api initialization
 	authAPI := NewAuthAPI(authDB, logger)
 	templateAPI := NewTemplateAPI(tm, tc, logger)
 	markovAPI := NewMarkovAPI(mg, tm, logger)
 	statsAPI := NewStatsAPI(statsDB, logger)
-	serverAPI := NewServerAPI(config, actionChan, tm, logger)
+	serverAPI := NewServerAPI(config, configMux, actionChan, tm, logger)
 	whitelistAPI := NewWhitelistAPI(authDB, logger, wlc)
 
 	// initialize the stats cache with configuration
@@ -80,6 +84,7 @@ func NewServer(config *Config, logger *slog.Logger, markovDB *sql.DB, authDB *sq
 	// create object, register routes to the mux, and return it
 	server := &Server{
 		config:       config,
+		configMux:    configMux,
 		markovDB:     markovDB,
 		authDB:       authDB,
 		statsDB:      statsDB,
@@ -160,9 +165,16 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 	}
 	threatLevel := s.tc.GetThreatLevel(metrics)
 	threatState := s.tc.GetStage(threatLevel)
+
+	s.configMux.RLock()
+	enabledTemplates := make([]string, len(s.config.Server.EnabledTemplates))
+	copy(enabledTemplates, s.config.Server.EnabledTemplates)
+	tarpitConfig := *s.config.Server.TarpitConfig
+	s.configMux.RUnlock()
+
 	var templateName string
-	if len(s.config.Server.EnabledTemplates) > 0 {
-		templateName = s.config.Server.EnabledTemplates[rand.Intn(len(s.config.Server.EnabledTemplates))]
+	if len(enabledTemplates) > 0 {
+		templateName = enabledTemplates[rand.Intn(len(enabledTemplates))]
 	} else {
 		templateName = s.tm.GetRandomTemplate()
 	}
@@ -183,14 +195,14 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 	s.setTarpitHeaders(w)
 
 	// If drip feeding is disabled in the config, or any of the config is invalid, send the response normally.
-	if !s.config.Server.TarpitConfig.EnableDripFeed || s.config.Server.TarpitConfig.DripFeedChunksMax <= 0 || s.config.Server.TarpitConfig.DripFeedDelayMax < 0 || s.config.Server.TarpitConfig.DripFeedChunksMax < 0 {
+	if !tarpitConfig.EnableDripFeed || tarpitConfig.DripFeedChunksMax <= 0 || tarpitConfig.DripFeedDelayMax < 0 || tarpitConfig.DripFeedChunksMax < 0 {
 		_, _ = buf.WriteTo(w)
 		return
 	}
 
 	// Enforce an initial delay before any data is sent.
-	if s.config.Server.TarpitConfig.InitialDelayMax > 0 {
-		time.Sleep(time.Duration(randRangeMinZero(s.config.Server.TarpitConfig.InitialDelayMin, s.config.Server.TarpitConfig.InitialDelayMax)) * time.Millisecond)
+	if tarpitConfig.InitialDelayMax > 0 {
+		time.Sleep(time.Duration(randRangeMinZero(tarpitConfig.InitialDelayMin, tarpitConfig.InitialDelayMax)) * time.Millisecond)
 	}
 
 	// Assert that the ResponseWriter supports flushing.
@@ -203,7 +215,7 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 
 	responseBytes := buf.Bytes()
 	totalSize := len(responseBytes)
-	chunks := randRangeMinZero(s.config.Server.TarpitConfig.DripFeedChunksMin, s.config.Server.TarpitConfig.DripFeedChunksMax)
+	chunks := randRangeMinZero(tarpitConfig.DripFeedChunksMin, tarpitConfig.DripFeedChunksMax)
 	chunkSize := totalSize / chunks
 
 	// Ensure chunk size is at least 1 to avoid an infinite loop on small responses.
@@ -229,7 +241,7 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 
 		// Wait before sending the next chunk, but not after the last one.
 		if end < totalSize {
-			time.Sleep(time.Duration(randRangeMinZero(s.config.Server.TarpitConfig.DripFeedDelayMin, s.config.Server.TarpitConfig.DripFeedDelayMax)) * time.Millisecond)
+			time.Sleep(time.Duration(randRangeMinZero(tarpitConfig.DripFeedDelayMin, tarpitConfig.DripFeedDelayMax)) * time.Millisecond)
 		}
 	}
 }

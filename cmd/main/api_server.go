@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/CTAG07/Sarracenia/pkg/templating"
 	"github.com/natefinch/atomic"
@@ -19,6 +20,7 @@ const (
 // ServerAPI holds the dependencies for the main application API handlers.
 type ServerAPI struct {
 	config     *Config
+	configMux  *sync.RWMutex
 	actionChan chan string
 	tm         *templating.TemplateManager
 	logger     *slog.Logger
@@ -32,9 +34,10 @@ type VersionInfo struct {
 }
 
 // NewServerAPI creates a new instance of the ServerAPI.
-func NewServerAPI(config *Config, actionChan chan string, tm *templating.TemplateManager, logger *slog.Logger) *ServerAPI {
+func NewServerAPI(config *Config, configMux *sync.RWMutex, actionChan chan string, tm *templating.TemplateManager, logger *slog.Logger) *ServerAPI {
 	return &ServerAPI{
 		config:     config,
+		configMux:  configMux,
 		actionChan: actionChan,
 		tm:         tm,
 		logger:     logger,
@@ -67,6 +70,8 @@ func (a *ServerAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusForbidden, "Forbidden: requires 'server:config' scope")
 			return
 		}
+		a.configMux.RLock()
+		defer a.configMux.RUnlock()
 		respondWithJSON(w, http.StatusOK, a.config)
 	case http.MethodPut:
 		if !hasScope(r, "server:config") {
@@ -78,6 +83,9 @@ func (a *ServerAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusBadRequest, "Invalid JSON request body")
 			return
 		}
+
+		a.configMux.Lock()
+		defer a.configMux.Unlock()
 
 		// Update the live config object
 		*a.config = newConfig

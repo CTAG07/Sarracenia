@@ -217,6 +217,11 @@ func (a *AuthAPI) listKeys(w http.ResponseWriter, r *http.Request) {
 
 func (a *AuthAPI) createKey(w http.ResponseWriter, r *http.Request) {
 
+	if !hasScope(r, "auth:manage") {
+		respondWithError(w, http.StatusForbidden, "Forbidden: requires 'auth:manage' scope")
+		return
+	}
+
 	var req CreateKeyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid JSON request body")

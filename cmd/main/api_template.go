@@ -156,7 +156,23 @@ func (t *TemplateAPI) handleFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := filepath.Join(t.tm.GetTemplateDir(), name)
+	templateDir, err := filepath.Abs(t.tm.GetTemplateDir())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to resolve template directory")
+		return
+	}
+
+	path := filepath.Join(templateDir, name)
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid path")
+		return
+	}
+
+	if !strings.HasPrefix(absPath, templateDir) {
+		respondWithError(w, http.StatusForbidden, "Access denied: Path outside template directory")
+		return
+	}
 
 	switch r.Method {
 	case http.MethodGet:
