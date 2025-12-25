@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/CTAG07/Sarracenia/pkg/markov"
@@ -24,8 +23,7 @@ type TemplateInput struct {
 }
 
 type Server struct {
-	config            *Config
-	configMux         *sync.RWMutex
+	cm                *ConfigManager
 	markovDB          *sql.DB
 	authDB            *sql.DB
 	statsDB           *sql.DB
@@ -45,7 +43,9 @@ type Server struct {
 	dashboardTemplate *template.Template
 }
 
-func NewServer(config *Config, logger *slog.Logger, markovDB *sql.DB, authDB *sql.DB, statsDB *sql.DB, actionChan chan string) (*Server, error) {
+func NewServer(cm *ConfigManager, logger *slog.Logger, markovDB *sql.DB, authDB *sql.DB, statsDB *sql.DB, actionChan chan string) (*Server, error) {
+
+	config := cm.Get()
 
 	// markov initialization
 	mg, err := markov.NewGenerator(markovDB, markov.NewDefaultTokenizer())
@@ -60,20 +60,21 @@ func NewServer(config *Config, logger *slog.Logger, markovDB *sql.DB, authDB *sq
 		return nil, fmt.Errorf("failed to create template manager: %w", err)
 	}
 
+	// Link the template manager to the config manager for updates
+	cm.SetTemplateManager(tm)
+
 	wlc := NewWhitelistCache()
 	err = wlc.LoadFromDB(authDB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load whitelist from db: %w", err)
 	}
 
-	configMux := &sync.RWMutex{}
-
 	// api initialization
 	authAPI := NewAuthAPI(authDB, logger)
 	templateAPI := NewTemplateAPI(tm, tc, logger)
 	markovAPI := NewMarkovAPI(mg, tm, logger)
 	statsAPI := NewStatsAPI(statsDB, logger)
-	serverAPI := NewServerAPI(config, configMux, actionChan, tm, logger)
+	serverAPI := NewServerAPI(cm, actionChan, tm, logger)
 	whitelistAPI := NewWhitelistAPI(authDB, logger, wlc)
 
 	// initialize the stats cache with configuration
@@ -83,8 +84,7 @@ func NewServer(config *Config, logger *slog.Logger, markovDB *sql.DB, authDB *sq
 
 	// create object, register routes to the mux, and return it
 	server := &Server{
-		config:       config,
-		configMux:    configMux,
+		cm:           cm,
 		markovDB:     markovDB,
 		authDB:       authDB,
 		statsDB:      statsDB,
@@ -148,13 +148,13 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
-	ipAddr := getClientIP(r)
+	ipAddr := s.getClientIP(r)
 	if s.wlc.IsWhitelisted(ipAddr, r.UserAgent()) {
 		s.logger.Debug("Request from whitelisted client, serving 404.", "remote_addr", r.RemoteAddr, "user_agent", r.UserAgent())
 		http.NotFound(w, r)
 		return
 	}
-	metrics, err := s.statsAPI.LogAndGetMetrics(r)
+	metrics, err := s.statsAPI.LogAndGetMetrics(r, ipAddr)
 	if err != nil {
 		s.logger.Warn("Failed to log and get metrics, proceeding with default threat assessment", "error", err)
 		metrics = &RequestMetrics{
@@ -166,11 +166,9 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 	threatLevel := s.tc.GetThreatLevel(metrics)
 	threatState := s.tc.GetStage(threatLevel)
 
-	s.configMux.RLock()
-	enabledTemplates := make([]string, len(s.config.Server.EnabledTemplates))
-	copy(enabledTemplates, s.config.Server.EnabledTemplates)
-	tarpitConfig := *s.config.Server.TarpitConfig
-	s.configMux.RUnlock()
+	config := s.cm.Get()
+	enabledTemplates := config.Server.EnabledTemplates
+	tarpitConfig := *config.Server.TarpitConfig
 
 	var templateName string
 	if len(enabledTemplates) > 0 {
@@ -192,7 +190,7 @@ func (s *Server) handleTarpit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	s.setTarpitHeaders(w)
+	s.setTarpitHeaders(w, tarpitConfig.Headers)
 
 	// If drip feeding is disabled in the config, or any of the config is invalid, send the response normally.
 	if !tarpitConfig.EnableDripFeed || tarpitConfig.DripFeedChunksMax <= 0 || tarpitConfig.DripFeedDelayMax < 0 || tarpitConfig.DripFeedChunksMax < 0 {
@@ -254,45 +252,49 @@ func randRangeMinZero(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
-func (s *Server) setTarpitHeaders(w http.ResponseWriter) {
-
-	w.Header().Set("Cache-Control", "no-store, no-cache")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+func (s *Server) setTarpitHeaders(w http.ResponseWriter, headers map[string]string) {
+	for k, v := range headers {
+		w.Header().Set(k, v)
+	}
 }
 
-func getClientIP(r *http.Request) string {
-	// First check X-Real-IP header (usually set by proxies)
-	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
-		return realIP
+func (s *Server) getClientIP(r *http.Request) string {
+	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		remoteIP = r.RemoteAddr
 	}
 
-	// Then check X-Forwarded-For header
-	// The leftmost IP is usually the original client when using trusted proxies
-	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
-		ips := strings.Split(forwardedFor, ",")
-		for _, ip := range ips {
-			ip = strings.TrimSpace(ip)
-			if ip != "" {
-				return ip
-			}
-		}
+	// If the immediate peer is not trusted, ignore headers.
+	if !s.cm.IsTrusted(remoteIP) {
+		return remoteIP
 	}
 
-	// Cloudflare also adds this header
+	// If we are here, we trust the proxy.
+	// Cloudflare Header
 	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
 		return cfIP
 	}
 
-	// As a last resort, fall back to the remote address
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		// If splitting fails (e.g., no port), return the address as is.
-		return r.RemoteAddr
+	// X-Forwarded-For
+	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+		ips := strings.Split(forwardedFor, ",")
+		// Walk backwards to find the first non-trusted IP
+		for i := len(ips) - 1; i >= 0; i-- {
+			ip := strings.TrimSpace(ips[i])
+			if ip == "" {
+				continue
+			}
+			if !s.cm.IsTrusted(ip) {
+				return ip
+			}
+		}
+		// If all IPs in the chain are trusted (unlikely but possible), return the first one (original client)
+		if len(ips) > 0 {
+			return strings.TrimSpace(ips[0])
+		}
 	}
-	return ip
+
+	return remoteIP
 }
 
 // handleFavicon is a small function to make sure that favicon requests aren't tarpitted, and instead return no

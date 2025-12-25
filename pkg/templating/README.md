@@ -5,9 +5,11 @@
 [![Part of Sarracenia](https://img.shields.io/badge/Part%20of-Sarracenia-8b5cf6)](https://github.com/CTAG07/Sarracenia)
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-A high-performance, extensible Go templating engine designed for generating complex, dynamic, and obfuscated web content.
+A high-performance, extensible Go templating engine designed for generating complex, dynamic, and obfuscated web
+content.
 
-Built for the Sarracenia tarpit, this engine specializes in creating plausible-looking but randomly generated HTML structures, integrated directly with Markov text generation sources.
+Built for the Sarracenia tarpit, this engine specializes in creating plausible-looking but randomly generated HTML
+structures, integrated directly with Markov text generation sources.
 
 ## Installation
 
@@ -146,23 +148,25 @@ The engine exposes a wide range of custom functions to templates.
 
 ### Computationally Expensive (`funcs_expensive.go`)
 
-| Signature                                 | Description                                                                                                                                            |
-|:------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `randomStyleBlock type count`             | Generates a `<style>` block with `count` complex/nested CSS rules. Capped by `MaxStyleRules`.                                                          |
-| `randomCSSVars count`                     | Generates a `<style>` block with a chain of interdependent CSS custom properties. Capped by `MaxCssVars`.                                              |
-| `randomSVG type complexity`               | Generates a complex inline SVG. `complexity` controls detail. Capped by `MaxSvgElements`. Types: `"fractal"`, `"filters"`                              |
-| `jsInteractiveContent tag content cycles` | Generates a JS element that decodes `content` after running a CPU waste loop for `cycles` iterations. Capped by `MaxJsContentSize/WasteCycles`.        |
+| Signature                                 | Description                                                                                                                                     |
+|:------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------|
+| `randomStyleBlock type count`             | Generates a `<style>` block with `count` complex/nested CSS rules. Capped by `MaxStyleRules`.                                                   |
+| `randomCSSVars count`                     | Generates a `<style>` block with a chain of interdependent CSS custom properties. Capped by `MaxCssVars`.                                       |
+| `randomSVG type complexity`               | Generates a complex inline SVG. `complexity` controls detail. Capped by `MaxSvgElements`. Types: `"fractal"`, `"filters"`                       |
+| `jsInteractiveContent tag content cycles` | Generates a JS element that decodes `content` after running a CPU waste loop for `cycles` iterations. Capped by `MaxJsContentSize/WasteCycles`. |
 
 ## Advanced Usage: The Composition Pattern
 
 The engine uses a strict file-naming convention to distinguish between stand-alone pages and reusable components.
 
-*   `*.tmpl.html`: **Main Templates.** These are complete pages (e.g., `page.tmpl.html`).
-*   `*.part.html`: **Partials.** These are reusable components (e.g., `layout.part.html`, `_header.part.html`). They should not be rendered directly and should only be used within a complete template.
+* `*.tmpl.html`: **Main Templates.** These are complete pages (e.g., `page.tmpl.html`).
+* `*.part.html`: **Partials.** These are reusable components (e.g., `layout.part.html`, `_header.part.html`). They
+  should not be rendered directly and should only be used within a complete template.
 
 ### Example Architecture
 
 **1. Base Layout (`data/templates/layout.part.html`)**
+
 ```html
 {{define "layout.part.html"}}
 <!DOCTYPE html>
@@ -175,6 +179,7 @@ The engine uses a strict file-naming convention to distinguish between stand-alo
 ```
 
 **2. Main Page (`data/templates/page.tmpl.html`)**
+
 ```html
 {{/* Extend the layout */}}
 {{template "layout.part.html" .}}
@@ -237,4 +242,5 @@ go test -bench . -benchmem
 
 ## License
 
-Licensed under the **AGPLv3**. See the [Sarracenia README](https://github.com/CTAG07/Sarracenia) for alternative licensing options.
+Licensed under the **AGPLv3**. See the [Sarracenia README](https://github.com/CTAG07/Sarracenia) for alternative
+licensing options.

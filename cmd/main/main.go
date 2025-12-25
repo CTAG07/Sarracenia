@@ -57,13 +57,14 @@ func main() {
 // run is the main loop that hosts both servers, and returns whenever the server is shutdown or restarted
 func run(actionChan chan string) (string, error) {
 
-	config, err := LoadConfig("./config.json")
+	cm, err := NewConfigManager("./config.json")
 	if err != nil {
-		return "", fmt.Errorf("failed to load configuration: %w", err)
+		return "", fmt.Errorf("failed to initialize config manager: %w", err)
 	}
 
+	activeConfig := cm.Get()
 	var logLevel slog.Level
-	switch strings.ToLower(config.Server.LogLevel) {
+	switch strings.ToLower(activeConfig.Server.LogLevel) {
 	case "debug":
 		logLevel = slog.LevelDebug
 	case "info":
@@ -78,15 +79,17 @@ func run(actionChan chan string) (string, error) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 	logger.Info("Starting server cycle...")
 
-	markovDB, err := initDB(config.Server.MarkovDatabasePath)
+	cm.SetLogger(logger)
+
+	markovDB, err := initDB(activeConfig.Server.MarkovDatabasePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize markov database: %w", err)
 	}
-	authDB, err := initDB(config.Server.AuthDatabasePath)
+	authDB, err := initDB(activeConfig.Server.AuthDatabasePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize auth database: %w", err)
 	}
-	statsDB, err := initDB(config.Server.StatsDatabasePath)
+	statsDB, err := initDB(activeConfig.Server.StatsDatabasePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize stats database: %w", err)
 	}
@@ -105,7 +108,7 @@ func run(actionChan chan string) (string, error) {
 	}
 
 	apiHttpServer := &http.Server{
-		Addr:              config.Server.ApiAddr,
+		Addr:              activeConfig.Server.ApiAddr,
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       15 * time.Minute,
 		WriteTimeout:      1 * time.Minute,
@@ -114,13 +117,13 @@ func run(actionChan chan string) (string, error) {
 
 	// Tarpit server must have a long WriteTimeout to accommodate delays and drip-feeding.
 	tarpitHttpServer := &http.Server{
-		Addr:         config.Server.ServerAddr,
+		Addr:         activeConfig.Server.ServerAddr,
 		ReadTimeout:  5 * time.Second,  // Still protect against slow requests.
 		WriteTimeout: 0,                // No timeout on writes so the tarpit can drip-feed for a long time.
 		IdleTimeout:  60 * time.Second, // Clean up idle keep-alive connections.
 	}
 
-	server, err := NewServer(config, logger, markovDB, authDB, statsDB, actionChan)
+	server, err := NewServer(cm, logger, markovDB, authDB, statsDB, actionChan)
 	if err != nil {
 		_ = markovDB.Close()
 		_ = authDB.Close()
@@ -159,7 +162,7 @@ func run(actionChan chan string) (string, error) {
 	}
 	logger.Info("HTTP servers stopped.")
 
-	logger.Info("Closing database connection.")
+	logger.Info("Closing database connections.")
 	if err = markovDB.Close(); err != nil {
 		logger.Error("Failed to close markov database", "error", err)
 	}

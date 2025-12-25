@@ -1,15 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sync"
 
 	"github.com/CTAG07/Sarracenia/pkg/templating"
-	"github.com/natefinch/atomic"
 )
 
 const (
@@ -19,8 +16,7 @@ const (
 
 // ServerAPI holds the dependencies for the main application API handlers.
 type ServerAPI struct {
-	config     *Config
-	configMux  *sync.RWMutex
+	cm         *ConfigManager
 	actionChan chan string
 	tm         *templating.TemplateManager
 	logger     *slog.Logger
@@ -34,10 +30,9 @@ type VersionInfo struct {
 }
 
 // NewServerAPI creates a new instance of the ServerAPI.
-func NewServerAPI(config *Config, configMux *sync.RWMutex, actionChan chan string, tm *templating.TemplateManager, logger *slog.Logger) *ServerAPI {
+func NewServerAPI(cm *ConfigManager, actionChan chan string, tm *templating.TemplateManager, logger *slog.Logger) *ServerAPI {
 	return &ServerAPI{
-		config:     config,
-		configMux:  configMux,
+		cm:         cm,
 		actionChan: actionChan,
 		tm:         tm,
 		logger:     logger,
@@ -70,9 +65,7 @@ func (a *ServerAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusForbidden, "Forbidden: requires 'server:config' scope")
 			return
 		}
-		a.configMux.RLock()
-		defer a.configMux.RUnlock()
-		respondWithJSON(w, http.StatusOK, a.config)
+		respondWithJSON(w, http.StatusOK, a.cm.Get())
 	case http.MethodPut:
 		if !hasScope(r, "server:config") {
 			respondWithError(w, http.StatusForbidden, "Forbidden: requires 'server:config' scope")
@@ -84,29 +77,14 @@ func (a *ServerAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		a.configMux.Lock()
-		defer a.configMux.Unlock()
-
-		// Update the live config object
-		*a.config = newConfig
-		a.tm.SetConfig(newConfig.Templates)
-		_ = a.tm.Refresh()
-
-		// Persist the changes to disk
-		data, err := json.MarshalIndent(a.config, "", "  ")
-		if err != nil {
-			a.logger.Error("Failed to marshal new config for saving", "error", err)
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to prepare config for saving: %v", err))
-			return
-		}
-		if err = atomic.WriteFile("config.json", bytes.NewReader(data)); err != nil {
-			a.logger.Error("Failed to save config.json", "error", err)
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save configuration to disk: %v", err))
+		if err := a.cm.Update(newConfig); err != nil {
+			a.logger.Error("Failed to update configuration", "error", err)
+			respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Configuration rejected: %v", err))
 			return
 		}
 
-		a.logger.Info("Application configuration updated and saved via API. Some changes may require a restart.")
-		respondWithJSON(w, http.StatusOK, a.config)
+		a.logger.Info("Application configuration updated and saved via API.")
+		respondWithJSON(w, http.StatusOK, a.cm.Get())
 	default:
 		w.Header().Set("Allow", "GET, PUT")
 		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")

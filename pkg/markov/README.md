@@ -5,7 +5,8 @@
 [![Part of Sarracenia](https://img.shields.io/badge/Part%20of-Sarracenia-8b5cf6)](https://github.com/CTAG07/Sarracenia)
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-A high-performance, persistent Markov chain library for Go, backed by SQLite. Designed for production environments requiring reliable text generation, efficient storage of large datasets, and transactional safety.
+A high-performance, persistent Markov chain library for Go, backed by SQLite. Designed for production environments
+requiring reliable text generation, efficient storage of large datasets, and transactional safety.
 
 ## Installation
 
@@ -101,9 +102,11 @@ if err != nil {
 ## Concurrency Note
 
 **Training Limitation:**
-Due to the write-intensive nature of Markov chain training and the single-writer locking model of SQLite, **only one model can be trained at a time**.
+Due to the write-intensive nature of Markov chain training and the single-writer locking model of SQLite, **only one
+model can be trained at a time**.
 
-While read operations (generation) are concurrent and non-blocking in WAL mode, attempting to run multiple `Train()` jobs simultaneously on the same database file will likely result in `SQLITE_BUSY` (database locked) errors.
+While read operations (generation) are concurrent and non-blocking in WAL mode, attempting to run multiple `Train()`
+jobs simultaneously on the same database file will likely result in `SQLITE_BUSY` (database locked) errors.
 
 ## Benchmarks
 
@@ -141,8 +144,10 @@ go test -bench . -benchmem
 
 ## Database Compatibility
 
-This library is optimized for **SQLite**. It utilizes specific SQL dialect features for performance. Porting to PostgreSQL or MySQL would require modifying the prepared statements in `generator.go` and `train.go`.
+This library is optimized for **SQLite**. It utilizes specific SQL dialect features for performance. Porting to
+PostgreSQL or MySQL would require modifying the prepared statements in `generator.go` and `train.go`.
 
 ## License
 
-Licensed under the **AGPLv3**. See the [Sarracenia README](https://github.com/CTAG07/Sarracenia) for alternative licensing options.
+Licensed under the **AGPLv3**. See the [Sarracenia README](https://github.com/CTAG07/Sarracenia) for alternative
+licensing options.

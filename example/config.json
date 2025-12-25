@@ -3,10 +3,11 @@
     "server_addr": ":7277",
     "api_addr": ":7278",
     "log_level": "info",
+    "trusted_proxies": [],
     "data_dir": "./data",
-    "markov_database_path": "./data/sarracenia_markov.db?_journal_mode=WAL&_busy_timeout=5000",
-    "auth_database_path": "./data/sarracenia_auth.db?_journal_mode=WAL&_busy_timeout=5000",
-    "stats_database_path": "./data/sarracenia_stats.db?_journal_mode=WAL&_busy_timeout=5000",
+    "markov_database_path": "./data/sarracenia_markov.db?_journal_mode=WAL\u0026_busy_timeout=5000",
+    "auth_database_path": "./data/sarracenia_auth.db?_journal_mode=WAL\u0026_busy_timeout=5000",
+    "stats_database_path": "./data/sarracenia_stats.db?_journal_mode=WAL\u0026_busy_timeout=5000",
     "dashboard_tmpl_path": "./data/dashboard/templates/",
     "dashboard_static_path": "./data/dashboard/static/",
     "enabled_templates": [
@@ -19,7 +20,14 @@
       "min_drip_feed_delay_ms": 500,
       "max_drip_feed_delay_ms": 1000,
       "min_drip_feed_chunks": 1,
-      "max_drip_feed_chunks": 20
+      "max_drip_feed_chunks": 20,
+      "headers": {
+        "Cache-Control": "no-store, no-cache",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
+        "Content-Type": "text/html; charset=utf-8",
+        "Expires": "0",
+        "Pragma": "no-cache"
+      }
     },
     "stats_config": {
       "sync_interval_sec": 30,

@@ -82,7 +82,7 @@ type TemplateConfig struct {
 // The PathWhitelist is empty by default, assuming that any non-API path will serve tarpit content.
 func DefaultConfig() *TemplateConfig {
 	return &TemplateConfig{
-		MarkovEnabled:           false,
+		MarkovEnabled:           true,
 		MarkovSeparator:         "",
 		MarkovEoc:               "",
 		MarkovSplitRegex:        "",

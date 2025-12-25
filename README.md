@@ -12,7 +12,9 @@
 
 A high-performance, configurable anti-scraper tarpit server written in Go.
 
-Sarracenia acts as a defensive countermeasure against web scrapers by serving generated, endless, and plausibly structured web content. Its primary goal is to trap automated agents in infinite loops of fake data, preventing them from accessing legitimate resources.
+Sarracenia acts as a defensive countermeasure against web scrapers by serving generated, endless, and plausibly
+structured web content. Its primary goal is to trap automated agents in infinite loops of fake data, preventing them
+from accessing legitimate resources.
 
 ---
 
@@ -22,20 +24,24 @@ Sarracenia is built on a modular architecture, with its core logic separated int
 
 ### Database Architecture
 
-Sarracenia utilizes a split SQLite architecture running in WAL (Write-Ahead Logging) mode to ensure high concurrency and stability under load.
+Sarracenia utilizes a split SQLite architecture running in WAL (Write-Ahead Logging) mode to ensure high concurrency and
+stability under load.
 
-*   **Markov DB:** Stores training data and chain models.
-*   **Stats DB:** Handles high-frequency write operations for request logging and analytics.
-*   **Auth DB:** Manages API keys, whitelists, and other low-frequency configuration data.
+* **Markov DB:** Stores training data and chain models.
+* **Stats DB:** Handles high-frequency write operations for request logging and analytics.
+* **Auth DB:** Manages API keys, whitelists, and other low-frequency configuration data.
 
-This separation ensures that heavy background tasks, such as model training, do not block real-time statistics logging or administrative actions.
+This separation ensures that heavy background tasks, such as model training, do not block real-time statistics logging
+or administrative actions.
 
 ### Core Libraries
 
-*   **`pkg/markov`**: A persistent Markov chain library supporting streaming generation, database-backed storage, and advanced sampling techniques.
-    *   [Documentation](./pkg/markov/README.md)
-*   **`pkg/templating`**: A dynamic HTML generation engine capable of producing complex, randomized DOM structures and executing logic-heavy templates.
-    *   [Documentation](./pkg/templating/README.md)
+* **`pkg/markov`**: A persistent Markov chain library supporting streaming generation, database-backed storage, and
+  advanced sampling techniques.
+    * [Documentation](./pkg/markov/README.md)
+* **`pkg/templating`**: A dynamic HTML generation engine capable of producing complex, randomized DOM structures and
+  executing logic-heavy templates.
+    * [Documentation](./pkg/templating/README.md)
 
 ---
 
@@ -43,18 +49,19 @@ This separation ensures that heavy background tasks, such as model training, do 
 
 ### 1. From Release (Recommended)
 
-1.  Download the latest binary for your OS from the [Releases Page](https://github.com/CTAG07/Sarracenia/releases/latest).
-2.  Download the Source code archive (zip/tar.gz) from the same release.
-3.  Extract the archive and copy the `example` directory contents to your working folder:
-    ```
-    /your/app/dir/
-    ├── sarracenia              # The binary
-    ├── config.json             # From example/config.json
-    └── data/                   # From example/data/
-    ```
-4.  Run the binary:
-    *   Linux/macOS: `./sarracenia`
-    *   Windows: `.\sarracenia.exe`
+1. Download the latest binary for your OS from
+   the [Releases Page](https://github.com/CTAG07/Sarracenia/releases/latest).
+2. Download the Source code archive (zip/tar.gz) from the same release.
+3. Extract the archive and copy the `example` directory contents to your working folder:
+   ```
+   /your/app/dir/
+   ├── sarracenia              # The binary
+   ├── config.json             # From example/config.json
+   └── data/                   # From example/data/
+   ```
+4. Run the binary:
+    * Linux/macOS: `./sarracenia`
+    * Windows: `.\sarracenia.exe`
 
 ### 2. Docker
 
@@ -88,15 +95,15 @@ go build -o sarracenia ./cmd/main
 
 ## Initial Setup
 
-1.  **Access the Dashboard**
-    By default, the dashboard runs on port `:7278`. Open a browser and navigate to `http://localhost:7278`.
+1. **Access the Dashboard**
+   By default, the dashboard runs on port `:7278`. Open a browser and navigate to `http://localhost:7278`.
 
-2.  **Create Master Credentials**
-    Upon first launch, the API is unsecured to allow initialization.
-    *   Navigate to the **API Keys** page.
-    *   Create a new key. The first key created is automatically assigned the Master (`*`) scope.
-    *   **Copy this key immediately.** It will not be shown again.
-    *   Once created, the API and Dashboard are immediately secured, and you will be logged in automatically.
+2. **Create Master Credentials**
+   Upon first launch, the API is unsecured to allow initialization.
+    * Navigate to the **API Keys** page.
+    * Create a new key. The first key created is automatically assigned the Master (`*`) scope.
+    * **Copy this key immediately.** It will not be shown again.
+    * Once created, the API and Dashboard are immediately secured, and you will be logged in automatically.
 
 ---
 
@@ -170,7 +177,8 @@ Stages define thresholds for triggering increasingly aggressive tarpit templates
 
 ## API Reference
 
-**Note:** The API is designed for internal use by the dashboard. It does not implement rate limiting. Do not expose the API port directly to the public internet.
+**Note:** The API is designed for internal use by the dashboard. It does not implement rate limiting. Do not expose the
+API port directly to the public internet.
 
 All endpoints require the `sarr-auth` header containing a valid API key.
 
@@ -185,7 +193,8 @@ All endpoints require the `sarr-auth` header containing a valid API key.
 
 ### Markov Models (`/api/markov`)
 
-**⚠️ Concurrency Warning:** Only one model can be trained at a time. Simultaneous training jobs will result in database lock errors.
+**⚠️ Concurrency Warning:** Only one model can be trained at a time. Simultaneous training jobs will result in database
+lock errors.
 
 | Method   | Endpoint                             | Scope          | Description                       |
 |:---------|:-------------------------------------|:---------------|:----------------------------------|
@@ -250,4 +259,5 @@ All endpoints require the `sarr-auth` header containing a valid API key.
 This project is licensed under the AGPLv3.
 
 **Alternative Licensing:**
-If you require a permissive license (e.g., MIT) for commercial or closed-source use, please contact the maintainer at **`82781942+CTAG07@users.noreply.github.com`**.
+If you require a permissive license (e.g., MIT) for commercial or closed-source use, please contact the maintainer at *
+*`82781942+CTAG07@users.noreply.github.com`**.

@@ -119,8 +119,7 @@ func (s *StatsAPI) RegisterRoutes(mux *http.ServeMux) {
 
 // LogAndGetMetrics is the core function called by the tarpit handler.
 // It logs the request and returns up-to-date metrics using the in-memory cache.
-func (s *StatsAPI) LogAndGetMetrics(r *http.Request) (*RequestMetrics, error) {
-	ip := getClientIP(r)
+func (s *StatsAPI) LogAndGetMetrics(r *http.Request, ip string) (*RequestMetrics, error) {
 	ua := r.UserAgent()
 	now := time.Now()
 

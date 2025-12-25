@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"net"
 	"os"
+	"strings"
+	"sync"
 
 	"github.com/CTAG07/Sarracenia/pkg/templating"
 	"github.com/natefinch/atomic"
@@ -15,6 +19,7 @@ type ServerConfig struct {
 	ServerAddr          string        `json:"server_addr"`
 	ApiAddr             string        `json:"api_addr"`
 	LogLevel            string        `json:"log_level"`
+	TrustedProxies      []string      `json:"trusted_proxies"`
 	DataDir             string        `json:"data_dir"`
 	MarkovDatabasePath  string        `json:"markov_database_path"`
 	AuthDatabasePath    string        `json:"auth_database_path"`
@@ -28,13 +33,14 @@ type ServerConfig struct {
 
 // TarpitConfig holds settings for response delaying and drip-feeding.
 type TarpitConfig struct {
-	EnableDripFeed    bool `json:"enable_drip_feed"`
-	InitialDelayMin   int  `json:"min_initial_delay_ms"`
-	InitialDelayMax   int  `json:"max_initial_delay_ms"`
-	DripFeedDelayMin  int  `json:"min_drip_feed_delay_ms"`
-	DripFeedDelayMax  int  `json:"max_drip_feed_delay_ms"`
-	DripFeedChunksMin int  `json:"min_drip_feed_chunks"`
-	DripFeedChunksMax int  `json:"max_drip_feed_chunks"`
+	EnableDripFeed    bool              `json:"enable_drip_feed"`
+	InitialDelayMin   int               `json:"min_initial_delay_ms"`
+	InitialDelayMax   int               `json:"max_initial_delay_ms"`
+	DripFeedDelayMin  int               `json:"min_drip_feed_delay_ms"`
+	DripFeedDelayMax  int               `json:"max_drip_feed_delay_ms"`
+	DripFeedChunksMin int               `json:"min_drip_feed_chunks"`
+	DripFeedChunksMax int               `json:"max_drip_feed_chunks"`
+	Headers           map[string]string `json:"headers"`
 }
 
 // StatsConfig holds settings for statistics caching and cleanup.
@@ -57,6 +63,7 @@ func DefaultServerConfig() *ServerConfig {
 		ServerAddr:          ":7277",
 		ApiAddr:             ":7278",
 		LogLevel:            "info",
+		TrustedProxies:      []string{},
 		DataDir:             "./data",
 		MarkovDatabasePath:  "./data/sarracenia_markov.db?_journal_mode=WAL&_busy_timeout=5000",
 		AuthDatabasePath:    "./data/sarracenia_auth.db?_journal_mode=WAL&_busy_timeout=5000",
@@ -72,6 +79,13 @@ func DefaultServerConfig() *ServerConfig {
 			DripFeedDelayMax:  1000,
 			DripFeedChunksMin: 1,
 			DripFeedChunksMax: 20,
+			Headers: map[string]string{
+				"Cache-Control":           "no-store, no-cache",
+				"Pragma":                  "no-cache",
+				"Expires":                 "0",
+				"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
+				"Content-Type":            "text/html; charset=utf-8",
+			},
 		},
 		StatsConfig: &StatsConfig{
 			SyncIntervalSec:  30,
@@ -116,4 +130,142 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// ConfigManager handles thread-safe access to configuration and derived state (trusted proxies).
+type ConfigManager struct {
+	config       *Config
+	mu           sync.RWMutex
+	trustedCIDRs []*net.IPNet
+	trustedIPs   []net.IP
+	configPath   string
+	logger       *slog.Logger
+	tm           *templating.TemplateManager
+}
+
+// NewConfigManager loads the config and initializes the manager.
+func NewConfigManager(path string) (*ConfigManager, error) {
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		return nil, err
+	}
+
+	cm := &ConfigManager{
+		config:     cfg,
+		configPath: path,
+		// Log to stdout before the application-specific logger is set.
+		logger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{})),
+	}
+	cm.refreshCache()
+
+	return cm, nil
+}
+
+// SetTemplateManager registers the template manager to receive config updates.
+func (cm *ConfigManager) SetTemplateManager(tm *templating.TemplateManager) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.tm = tm
+	// Ensure TM starts with current config
+	if tm != nil {
+		tm.SetConfig(cm.config.Templates)
+	}
+}
+
+// SetLogger sets the logger. That's about it.
+func (cm *ConfigManager) SetLogger(logger *slog.Logger) {
+	cm.logger = logger
+}
+
+// Get returns a thread-safe copy of the current configuration.
+func (cm *ConfigManager) Get() Config {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	// Return a dereferenced copy to prevent external modification of the internal state
+	return *cm.config
+}
+
+// Update updates the configuration, saves it to disk, and refreshes derived state.
+func (cm *ConfigManager) Update(newConfig Config) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	// If we have a TemplateManager, try to apply the new config to it first.
+	if cm.tm != nil {
+		// Keep reference to old template config
+		oldTmplConfig := cm.config.Templates
+
+		cm.tm.SetConfig(newConfig.Templates)
+		if err := cm.tm.Refresh(); err != nil {
+			// Rollback to old config
+			cm.tm.SetConfig(oldTmplConfig)
+			_ = cm.tm.Refresh()
+			return fmt.Errorf("template configuration rejected: %w", err)
+		}
+	}
+
+	*cm.config = newConfig
+	cm.refreshCache()
+
+	data, err := json.MarshalIndent(cm.config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := atomic.WriteFile(cm.configPath, bytes.NewReader(data)); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
+}
+
+// IsTrusted checks if an IP is in the trusted proxies list using the cache.
+func (cm *ConfigManager) IsTrusted(ipAddr string) bool {
+	parsedIP := net.ParseIP(ipAddr)
+	if parsedIP == nil {
+		return false
+	}
+
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	for _, ipNet := range cm.trustedCIDRs {
+		if ipNet.Contains(parsedIP) {
+			return true
+		}
+	}
+
+	for _, trustedIP := range cm.trustedIPs {
+		if trustedIP.Equal(parsedIP) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// refreshCache rebuilds the binary IP lists from the config strings.
+func (cm *ConfigManager) refreshCache() {
+	var cidrs []*net.IPNet
+	var ips []net.IP
+
+	for _, t := range cm.config.Server.TrustedProxies {
+		if strings.Contains(t, "/") {
+			_, ipNet, err := net.ParseCIDR(t)
+			if err == nil {
+				cidrs = append(cidrs, ipNet)
+			} else {
+				cm.logger.Warn("Failed to parse trusted proxy CIDR", "cidr", t, "error", err)
+			}
+		} else {
+			ip := net.ParseIP(t)
+			if ip != nil {
+				ips = append(ips, ip)
+			} else {
+				cm.logger.Warn("Failed to parse trusted proxy IP", "ip", t)
+			}
+		}
+	}
+	cm.trustedCIDRs = cidrs
+	cm.trustedIPs = ips
 }
