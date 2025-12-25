@@ -8,7 +8,7 @@
 [![Repo size](https://img.shields.io/github/repo-size/CTAG07/Sarracenia)](https://github.com/CTAG07/Sarracenia)
 
 [![Sarracenia Test / Build / Release](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml)
-[![CodeQL Advanced](https://github.com/CTAG07/Sarracenia/actions/workflows/codeql.yml/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/CTAG07/Sarracenia/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/github-code-scanning/codeql)
 
 A high-performance, configurable anti-scraper tarpit server written in Go.
 
