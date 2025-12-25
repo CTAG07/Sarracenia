@@ -43,16 +43,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ACTIONS_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
+      - name: Extract Docker metadata for CGO
+        id: meta-cgo
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ steps.string.outputs.repo_lc }}
           tags: |
-            # Create tags based on the git tag: v1.2.3, v1.2, and latest
+            # CGO version is the default (latest) AND has explicit -cgo tags
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}}-cgo
+            type=semver,pattern={{major}}.{{minor}}-cgo
             type=raw,value=latest,enable=true
+            type=raw,value=latest-cgo,enable=true
+
+      - name: Extract Docker metadata for Native
+        id: meta-native
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.string.outputs.repo_lc }}
+          tags: |
+            # Native version gets explicit suffix
+            type=semver,pattern={{version}}-native
+            type=semver,pattern={{major}}.{{minor}}-native
+            type=raw,value=latest-native,enable=true
 
       - name: Get Commit SHA
         id: commit
@@ -65,33 +79,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Build and push (CGO - Default)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile.cgo
+          push: true
+          tags: ${{ steps.meta-cgo.outputs.tags }}
+          labels: ${{ steps.meta-cgo.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta-cgo.outputs.version }}
+            COMMIT=${{ steps.commit.outputs.sha }}
+            BUILD_DATE=${{ steps.date.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build and push (Native)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/Dockerfile.native
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-native.outputs.tags }}
+          labels: ${{ steps.meta-native.outputs.labels }}
           build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
-            COMMIT=${{ steps.commit.outputs.sha }}
-            BUILD_DATE=${{ steps.date.outputs.date }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push (CGO)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./docker/Dockerfile.cgo
-          push: true
-          tags: |
-            ghcr.io/${{ steps.string.outputs.repo_lc }}:${{ steps.meta.outputs.version }}-cgo
-            ghcr.io/${{ steps.string.outputs.repo_lc }}:latest-cgo
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
+            VERSION=${{ steps.meta-native.outputs.version }}
             COMMIT=${{ steps.commit.outputs.sha }}
             BUILD_DATE=${{ steps.date.outputs.date }}
           cache-from: type=gha
