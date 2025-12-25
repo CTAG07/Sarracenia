@@ -259,5 +259,5 @@ lock errors.
 This project is licensed under the AGPLv3.
 
 **Alternative Licensing:**
-If you require a permissive license (e.g., MIT) for commercial or closed-source use, please contact the maintainer at *
-*`82781942+CTAG07@users.noreply.github.com`**.
+If you require a permissive license (e.g., MIT) for commercial or closed-source use, please contact the maintainer at 
+`82781942+CTAG07@users.noreply.github.com`.
