@@ -1,4 +1,6 @@
-# <img src="icon.svg" width=48 height=48 alt="Logo" style="vertical-align: middle;">Sarracenia
+<div align="center">
+<img src="icon.svg" width=128 height=128 alt="Logo">
+<h1>Sarracenia</h1>
 
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/CTAG07/Sarracenia)](https://goreportcard.com/report/github.com/CTAG07/Sarracenia)
@@ -9,6 +11,8 @@
 
 [![Sarracenia Test / Build / Release](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/go.yml)
 [![CodeQL](https://github.com/CTAG07/Sarracenia/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/CTAG07/Sarracenia/actions/workflows/github-code-scanning/codeql)
+
+</div>
 
 A high-performance, configurable anti-scraper tarpit server written in Go.
 
