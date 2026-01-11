@@ -1,4 +1,4 @@
-# Sarracenia
+# <img src="icon.svg" width=48 height=48 alt="Logo" style="vertical-align: middle;">Sarracenia
 
 [![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/CTAG07/Sarracenia)](https://goreportcard.com/report/github.com/CTAG07/Sarracenia)
@@ -12,27 +12,20 @@
 
 A high-performance, configurable anti-scraper tarpit server written in Go.
 
-Sarracenia acts as a defensive countermeasure against web scrapers by serving generated, endless, and plausibly
-structured web content. Its primary goal is to trap automated agents in infinite loops of fake data, preventing them
-from accessing legitimate resources.
+Sarracenia is meant to serve as a defensive countermeasure against web scrapers by serving generated, endless, and 
+good-enough web content to be believable. It's primary goal is to trap scrapers and keep them away from your actual 
+web content, or as a more strict enforcer for those who don't listen to robots.txt.
+
+Sarracenia is made to use a very low amount of resources while remaining performant, and uses SQLite databases to hold 
+data when it's not being used. This allows Sarracenia to have functionality like multiple markov models, each trained 
+on hundreds of MB of text data or even larger, while keeping its memory footprint in the double digits at most.
+
+Please note that Sarracenia is currently feature complete, as I have added everything that I wanted to.
+
+If you want new features, or encountered a bug that needs fixing, please open a github issue or a pull request.
+Contributions are welcome!
 
 ---
-
-## Architecture & Components
-
-Sarracenia is built on a modular architecture, with its core logic separated into reusable libraries.
-
-### Database Architecture
-
-Sarracenia utilizes a split SQLite architecture running in WAL (Write-Ahead Logging) mode to ensure high concurrency and
-stability under load.
-
-* **Markov DB:** Stores training data and chain models.
-* **Stats DB:** Handles high-frequency write operations for request logging and analytics.
-* **Auth DB:** Manages API keys, whitelists, and other low-frequency configuration data.
-
-This separation ensures that heavy background tasks, such as model training, do not block real-time statistics logging
-or administrative actions.
 
 ### Core Libraries
 
@@ -95,10 +88,10 @@ go build -o sarracenia ./cmd/main
 
 ## Initial Setup
 
-1. **Access the Dashboard**
+1. **Access the Dashboard**:
    By default, the dashboard runs on port `:7278`. Open a browser and navigate to `http://localhost:7278`.
 
-2. **Create Master Credentials**
+2. **Create Master API Key**:
    Upon first launch, the API is unsecured to allow initialization.
     * Navigate to the **API Keys** page.
     * Create a new key. The first key created is automatically assigned the Master (`*`) scope.
@@ -129,12 +122,13 @@ Configuration is managed via `config.json`.
 
 Controls the behavior of the tarpit response mechanism.
 
-| Key                  | Description                                                          | Default |
-|:---------------------|:---------------------------------------------------------------------|:--------|
-| `enable_drip_feed`   | If true, responses are sent in slow chunks to hold connections open. | `false` |
-| `initial_delay_ms`   | Delay before sending the first byte.                                 | `0`     |
-| `drip_feed_delay_ms` | Delay between subsequent chunks.                                     | `500`   |
-| `drip_feed_chunks`   | Total chunks to split the response into.                             | `10`    |
+| Key                  | Description                                                          | Default                                                                                                                                                                                                                                     |
+|:---------------------|:---------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `enable_drip_feed`   | If true, responses are sent in slow chunks to hold connections open. | `false`                                                                                                                                                                                                                                     |
+| `initial_delay_ms`   | Delay before sending the first byte.                                 | `0`                                                                                                                                                                                                                                         |
+| `drip_feed_delay_ms` | Delay between subsequent chunks.                                     | `500`                                                                                                                                                                                                                                       |
+| `drip_feed_chunks`   | Total chunks to split the response into.                             | `10`                                                                                                                                                                                                                                        |
+| `headers`            | HTTP headers that the tarpit replies to each request with.           | `{"Cache-Control":"no-store, no-cache","Pragma":"no-cache","Expires":"0","Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';","Content-Type":"text/html; charset=utf-8",}` |
 
 ### Statistics Configuration (`stats_config`)
 
@@ -146,7 +140,28 @@ Controls the behavior of the tarpit response mechanism.
 
 ### Template Configuration (`template_config`)
 
-This object configures the templating engine. See the [full documentation here](./pkg/templating/README.md).
+| Key                          | Description                                                                             | Default         |
+|:-----------------------------|:----------------------------------------------------------------------------------------|:----------------|
+| `markov_enabled`             | Controls whether `markov` functions use the generator. Falls back to `random` if false. | `true`          |
+| `markov_separator`           | Separator used by the markov tokenizer.                                                 | `""`            |
+| `markov_eoc`                 | End-of-chain marker used by the markov tokenizer.                                       | `""`            |
+| `markov_split_regex`         | Regex for splitting tokens in the markov tokenizer.                                     | `""`            |
+| `markov_eoc_regex`           | Regex for detecting EOC tokens.                                                         | `""`            |
+| `markov_separator_exc_regex` | Regex for tokens that should not have a separator prefix.                               | `""`            |
+| `markov_eoc_exc_regex`       | Regex for tokens that should not have an EOC suffix.                                    | `""`            |
+| `path_whitelist`             | URL paths considered safe; excluded from random link generation.                        | `[]`            |
+| `min_subpaths`               | Minimum number of segments in generated URL paths.                                      | `1`             |
+| `max_subpaths`               | Maximum number of segments in generated URL paths.                                      | `5`             |
+| `max_json_depth`             | Hard limit on recursion depth for `randomJSON`.                                         | `8`             |
+| `max_nest_divs`              | Hard limit on recursion depth for `nestDivs`.                                           | `50`            |
+| `max_table_rows`             | Maximum rows for `randomComplexTable`.                                                  | `100`           |
+| `max_table_cols`             | Maximum columns for `randomComplexTable`.                                               | `50`            |
+| `max_form_fields`            | Maximum fields for `randomForm`.                                                        | `75`            |
+| `max_style_rules`            | Maximum complex CSS rules for `randomStyleBlock`.                                       | `200`           |
+| `max_css_vars`               | Maximum interdependent CSS variables for `randomCSSVars`.                               | `100`           |
+| `max_svg_elements`           | Complexity limit for `randomSVG`.                                                       | `7`             |
+| `max_js_content_size`        | Maximum content size (bytes) for `jsInteractiveContent`.                                | `1048576` (1MB) |
+| `max_js_waste_cycles`        | Maximum waste loop iterations for `jsInteractiveContent`.                               | `1,000,000`     |
 
 ### Threat Configuration (`threat_config`)
 
@@ -193,7 +208,7 @@ All endpoints require the `sarr-auth` header containing a valid API key.
 
 ### Markov Models (`/api/markov`)
 
-**⚠️ Concurrency Warning:** Only one model can be trained at a time. Simultaneous training jobs will result in database
+**Do note:** Only one model can be trained at a time. Simultaneous training jobs will result in database
 lock errors.
 
 | Method   | Endpoint                             | Scope          | Description                       |
@@ -254,10 +269,14 @@ lock errors.
 
 ---
 
-## License
 
-This project is licensed under the AGPLv3.
 
-**Alternative Licensing:**
-If you require a permissive license (e.g., MIT) for commercial or closed-source use, please contact the maintainer at 
-`82781942+CTAG07@users.noreply.github.com`.
+A special thank you to [Nepenthes](https://zadzmo.org/code/nepenthes/) for the inspiration.
+
+This project is *technically* a fork from the initial version of 
+[Chunchunmaru](https://github.com/BrandenStoberReal/Chunchunmaru), which I majorly contributed to before the fork there 
+was made. This is the reason for the similarities in functions for template generation and other project structure. 
+However, I started from scratch and wrote Sarracenia from the ground up to fit my original vision for the project.
+
+Gemini CLI was used to make the dashboard, as I am not an experienced frontend/html programmer, nor do I plan on being 
+one. If anyone would like to make their own, improved version, I would be glad to accept it as a replacement.

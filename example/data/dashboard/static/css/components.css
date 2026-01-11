@@ -144,12 +144,31 @@ nav .logout-section {
     justify-content: space-between;
     align-items: center;
     border-block-end: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.table-search-input {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+    width: 200px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
 }
 
 .card-header h3 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .card-content {

@@ -146,8 +146,3 @@ go test -bench . -benchmem
 
 This library is optimized for **SQLite**. It utilizes specific SQL dialect features for performance. Porting to
 PostgreSQL or MySQL would require modifying the prepared statements in `generator.go` and `train.go`.
-
-## License
-
-Licensed under the **AGPLv3**. See the [Sarracenia README](https://github.com/CTAG07/Sarracenia) for alternative
-licensing options.

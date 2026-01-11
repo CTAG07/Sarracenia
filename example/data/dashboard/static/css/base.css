@@ -83,3 +83,7 @@ hr {
         transform: rotate(360deg);
     }
 }
+
+.text-right {
+    text-align: right;
+}

@@ -29,15 +29,18 @@
         <div class="card table-container">
             <div class="card-header">
                 <h3>IP Address Analysis</h3>
-                <button type="button" class="secondary show-all-btn" data-table="ips">Show Top 5</button>
+                <div class="card-header-actions">
+                    <input type="text" class="table-search-input" placeholder="Filter IPs..." data-table="ips">
+                    <button type="button" class="secondary show-all-btn" data-table="ips">Show Top 5</button>
+                </div>
             </div>
             <table id="ips-table" class="responsive-table">
                 <thead>
                 <tr>
                     <th class="sortable" data-sort="last_seen">Status</th>
                     <th class="sortable" data-sort="ip_address">IP Address</th>
-                    <th class="sortable" data-sort="total_hits">Hits</th>
-                    <th class="sortable" data-sort="hit_rate">Hit Rate</th>
+                    <th class="sortable text-right" data-sort="total_hits">Hits</th>
+                    <th class="sortable text-right" data-sort="hit_rate">Hit Rate</th>
                     <th class="sortable" data-sort="last_seen">Last Seen</th>
                 </tr>
                 </thead>
@@ -48,15 +51,19 @@
         <div class="card table-container" style="margin-top: 1.5rem;">
             <div class="card-header">
                 <h3>User Agent Analysis</h3>
-                <button type="button" class="secondary show-all-btn" data-table="agents">Show Top 5</button>
+                <div class="card-header-actions">
+                    <input type="text" class="table-search-input" placeholder="Filter User Agents..."
+                           data-table="agents">
+                    <button type="button" class="secondary show-all-btn" data-table="agents">Show Top 5</button>
+                </div>
             </div>
             <table id="agents-table" class="responsive-table">
                 <thead>
                 <tr>
                     <th class="sortable" data-sort="last_seen">Status</th>
                     <th class="sortable" data-sort="user_agent">User Agent</th>
-                    <th class="sortable" data-sort="total_hits">Hits</th>
-                    <th class="sortable" data-sort="hit_rate">Hit Rate</th>
+                    <th class="sortable text-right" data-sort="total_hits">Hits</th>
+                    <th class="sortable text-right" data-sort="hit_rate">Hit Rate</th>
                     <th class="sortable" data-sort="last_seen">Last Seen</th>
                 </tr>
                 </thead>
@@ -461,70 +468,83 @@
         <div class="page-header">
             <h2>Themes</h2>
         </div>
-        <div class="grid theme-grid">
-            <div class="card theme-card" data-theme="default">
-                <div class="theme-preview"></div>
-                <h3>Default</h3>
+
+        <div class="tab-nav" id="themes-tab-nav">
+            <button class="tab-btn active" data-target-panel="themes-list-panel">Themes</button>
+            <button class="tab-btn" data-target-panel="theme-editor-panel">Theme Editor</button>
+        </div>
+
+        <div id="themes-list-panel" class="tab-panel active">
+            <div style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    My Saved Themes</h3>
+                <div class="grid theme-grid" id="saved-themes-grid">
+                    <p class="list-empty-state" style="grid-column: 1/-1; text-align: left; padding: 0;">No custom
+                        themes saved yet.</p>
+                </div>
             </div>
-            <div class="card theme-card" data-theme="light">
-                <div class="theme-preview"></div>
-                <h3>Light</h3>
+
+            <div>
+                <h3 style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Preset Themes</h3>
+                <div class="grid theme-grid" id="preset-themes-grid">
+                    <!-- Theme cards will be rendered here by JS -->
+                    <div class="skeleton" style="height: 150px;"></div>
+                    <div class="skeleton" style="height: 150px;"></div>
+                    <div class="skeleton" style="height: 150px;"></div>
+                    <div class="skeleton" style="height: 150px;"></div>
+                </div>
             </div>
-            <div class="card theme-card" data-theme="dracula">
-                <div class="theme-preview"></div>
-                <h3>Dracula</h3>
-            </div>
-            <div class="card theme-card" data-theme="solarized">
-                <div class="theme-preview"></div>
-                <h3>Solarized</h3>
-            </div>
-            <div class="card theme-card" data-theme="nord">
-                <div class="theme-preview"></div>
-                <h3>Nord</h3>
-            </div>
-            <div class="card theme-card" data-theme="gruvbox">
-                <div class="theme-preview"></div>
-                <h3>Gruvbox</h3>
-            </div>
-            <div class="card theme-card" data-theme="catppuccin">
-                <div class="theme-preview"></div>
-                <h3>Catppuccin</h3>
-            </div>
-            <div class="card theme-card" data-theme="monokai">
-                <div class="theme-preview"></div>
-                <h3>Monokai</h3>
-            </div>
-            <div class="card theme-card" data-theme="one-dark">
-                <div class="theme-preview"></div>
-                <h3>One Dark</h3>
-            </div>
-            <div class="card theme-card" data-theme="tokyo-night">
-                <div class="theme-preview"></div>
-                <h3>Tokyo Night</h3>
-            </div>
-            <div class="card theme-card" data-theme="synthwave">
-                <div class="theme-preview"></div>
-                <h3>Synthwave</h3>
-            </div>
-            <div class="card theme-card" data-theme="solarized-light">
-                <div class="theme-preview"></div>
-                <h3>Solarized Light</h3>
-            </div>
-            <div class="card theme-card" data-theme="github-light">
-                <div class="theme-preview"></div>
-                <h3>GitHub Light</h3>
-            </div>
-            <div class="card theme-card" data-theme="vscode">
-                <div class="theme-preview"></div>
-                <h3>VSCode</h3>
-            </div>
-            <div class="card theme-card" data-theme="cyberpunk">
-                <div class="theme-preview"></div>
-                <h3>Cyberpunk</h3>
-            </div>
-            <div class="card theme-card" data-theme="sky">
-                <div class="theme-preview"></div>
-                <h3>Sky</h3>
+        </div>
+
+        <div id="theme-editor-panel" class="tab-panel">
+            <div class="grid" style="grid-template-columns: 2fr 1fr; align-items: start;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Editor</h3>
+                        <div class="card-header-actions">
+                            <button class="secondary" id="importThemeBtn" title="Import from Clipboard">Import</button>
+                            <button class="secondary" id="exportThemeBtn" title="Copy JSON to Clipboard">Copy JSON
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: flex-end;">
+                            <div style="flex-grow: 1;">
+                                <label for="customThemeName">Theme Name</label>
+                                <input type="text" id="customThemeName" placeholder="e.g., My Cool Dark Theme">
+                            </div>
+                            <button id="saveCustomThemeBtn" style="margin-bottom: 1px;">Save Theme</button>
+                        </div>
+
+                        <div id="custom-theme-editor-grid"
+                             style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
+                            <!-- Populated by JS -->
+                        </div>
+                        <hr>
+                        <button id="applyEditorThemeBtn" class="secondary" style="width: 100%;">Apply Changes
+                            (Preview)
+                        </button>
+                    </div>
+                </div>
+                <div class="card sticky-card" style="position: sticky; top: 100px;">
+                    <div class="card-header"><h3>Live Preview</h3></div>
+                    <div class="card-content">
+                        <!-- A mini mockup of the dashboard components -->
+                        <div class="mockup-container"
+                             style="display: flex; flex-direction: column; gap: 1rem; border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; background: var(--bg-main);">
+                            <div style="background: var(--bg-surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <h4 style="color: var(--text-primary); margin: 0 0 0.5rem 0;">Card Title</h4>
+                                <p style="color: var(--text-secondary); margin: 0;">Secondary text example.</p>
+                                <button style="margin-top: 1rem;">Primary Button</button>
+                                <button class="danger" style="margin-top: 0.5rem;">Danger Button</button>
+                                <button class="warning" style="margin-top: 0.5rem;">Warning Button</button>
+                            </div>
+                            <div style="color: var(--text-accent);">Accent Link Text</div>
+                            <input type="text" placeholder="Input field..." style="width: 100%;">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

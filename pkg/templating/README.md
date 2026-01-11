@@ -55,7 +55,7 @@ The `TemplateConfig` struct controls the behavior and safety limits of the templ
 
 | Key                          | Description                                                                             | Default         |
 |:-----------------------------|:----------------------------------------------------------------------------------------|:----------------|
-| `markov_enabled`             | Controls whether `markov` functions use the generator. Falls back to `random` if false. | `false`         |
+| `markov_enabled`             | Controls whether `markov` functions use the generator. Falls back to `random` if false. | `true`          |
 | `markov_separator`           | Separator used by the markov tokenizer.                                                 | `""`            |
 | `markov_eoc`                 | End-of-chain marker used by the markov tokenizer.                                       | `""`            |
 | `markov_split_regex`         | Regex for splitting tokens in the markov tokenizer.                                     | `""`            |
@@ -239,8 +239,3 @@ The templates used for the benchmarks are as follows:
 cd pkg/templating
 go test -bench . -benchmem
 ```
-
-## License
-
-Licensed under the **AGPLv3**. See the [Sarracenia README](https://github.com/CTAG07/Sarracenia) for alternative
-licensing options.
