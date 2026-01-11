@@ -6,6 +6,8 @@ on:
 
 jobs:
   test:
+    permissions:
+      contents: read
     name: Run Go Tests
     runs-on: ubuntu-latest
     steps:
