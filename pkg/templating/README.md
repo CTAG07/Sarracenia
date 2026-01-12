@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/CTAG07/Sarracenia/pkg/templating.svg)](https://pkg.go.dev/github.com/CTAG07/Sarracenia/pkg/templating)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/CTAG07/Sarracenia)](https://golang.org)
 [![Part of Sarracenia](https://img.shields.io/badge/Part%20of-Sarracenia-8b5cf6)](https://github.com/CTAG07/Sarracenia)
-[![AGPLv3 License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance, extensible Go templating engine designed for generating complex, dynamic, and obfuscated web
 content.
