@@ -412,6 +412,7 @@ table th.sortable[data-sort-dir="desc"]::after {
 .stat-card {
     text-align: center;
     padding: 1.5rem;
+    container-type: inline-size;
 }
 
 .stat-card h2 {
@@ -425,9 +426,12 @@ table th.sortable[data-sort-dir="desc"]::after {
 
 .stat-card p {
     margin: 0;
-    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-size: clamp(2rem, 18cqw, 4.5rem);
     font-weight: 700;
     line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .vitals-list {
