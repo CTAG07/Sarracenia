@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/CTAG07/Sarracenia/pkg/templating"
+	"github.com/amenyxia/Sarracenia/pkg/templating"
 )
 
 const (

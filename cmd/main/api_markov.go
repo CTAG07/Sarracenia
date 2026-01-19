@@ -14,9 +14,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CTAG07/Sarracenia/pkg/templating"
+	"github.com/amenyxia/Sarracenia/pkg/templating"
 
-	"github.com/CTAG07/Sarracenia/pkg/markov"
+	"github.com/amenyxia/Sarracenia/pkg/markov"
 )
 
 // MarkovAPI holds the dependencies for the Markov model API handlers.

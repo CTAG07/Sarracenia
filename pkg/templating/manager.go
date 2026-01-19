@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CTAG07/Sarracenia/pkg/markov"
+	"github.com/amenyxia/Sarracenia/pkg/markov"
 )
 
 var (

@@ -1,4 +1,4 @@
-module github.com/CTAG07/Sarracenia
+module github.com/amenyxia/Sarracenia
 
 go 1.25
 

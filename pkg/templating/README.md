@@ -1,8 +1,8 @@
 # Sarracenia Templating Engine
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/CTAG07/Sarracenia/pkg/templating.svg)](https://pkg.go.dev/github.com/CTAG07/Sarracenia/pkg/templating)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/CTAG07/Sarracenia)](https://golang.org)
-[![Part of Sarracenia](https://img.shields.io/badge/Part%20of-Sarracenia-8b5cf6)](https://github.com/CTAG07/Sarracenia)
+[![Go Reference](https://pkg.go.dev/badge/github.com/amenyxia/Sarracenia/pkg/templating.svg)](https://pkg.go.dev/github.com/amenyxia/Sarracenia/pkg/templating)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/amenyxia/Sarracenia)](https://golang.org)
+[![Part of Sarracenia](https://img.shields.io/badge/Part%20of-Sarracenia-8b5cf6)](https://github.com/amenyxia/Sarracenia)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance, extensible Go templating engine designed for generating complex, dynamic, and obfuscated web
@@ -14,7 +14,7 @@ structures, integrated directly with Markov text generation sources.
 ## Installation
 
 ```sh
-go get github.com/CTAG07/Sarracenia/pkg/templating
+go get github.com/amenyxia/Sarracenia/pkg/templating
 ```
 
 ## Quick Start
@@ -27,7 +27,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/CTAG07/Sarracenia/pkg/templating"
+	"github.com/amenyxia/Sarracenia/pkg/templating"
 )
 
 func main() {

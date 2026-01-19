@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CTAG07/Sarracenia/pkg/markov"
+	"github.com/amenyxia/Sarracenia/pkg/markov"
 	_ "github.com/mattn/go-sqlite3"
 )
 

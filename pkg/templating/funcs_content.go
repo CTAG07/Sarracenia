@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CTAG07/Sarracenia/pkg/markov"
+	"github.com/amenyxia/Sarracenia/pkg/markov"
 )
 
 const (

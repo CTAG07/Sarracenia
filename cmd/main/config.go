@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CTAG07/Sarracenia/pkg/templating"
+	"github.com/amenyxia/Sarracenia/pkg/templating"
 	"github.com/natefinch/atomic"
 )
 

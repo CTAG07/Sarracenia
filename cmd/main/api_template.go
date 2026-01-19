@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CTAG07/Sarracenia/pkg/templating"
+	"github.com/amenyxia/Sarracenia/pkg/templating"
 )
 
 // TemplateAPI holds the dependencies for the template API handlers.
